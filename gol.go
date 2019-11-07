@@ -6,6 +6,20 @@ import (
 	"strings"
 )
 
+
+func isAlive(p golParams, x, y int, temp [][]byte) bool{
+	x+= p.imageWidth
+	x %= p.imageWidth
+	y+=p.imageHeight
+	y%=p.imageHeight
+	//fmt.Println(x, y)
+	if temp[y][x] == 0{
+		return false
+	}else{
+		return true
+	}
+}
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell) {
 
@@ -29,14 +43,40 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 			}
 		}
 	}
+	temp:= make([][]byte, p.imageHeight)
+	for i := range world{
+		temp[i] = make([]byte, p.imageWidth)
+		copy(temp[i], world[i])
+
+	}
 
 	// Calculate the new state of Game of Life after the given number of turns.
 	for turns := 0; turns < p.turns; turns++ {
 		for y := 0; y < p.imageHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
+				count := 0
+				for i := -1; i <= 1; i++ {
+					for j := -1; j <= 1; j++ {
+						if (j != 0 || i != 0) && isAlive(p, x+i, y+j, temp){
+							count++
+						}
+					}
+				}
+				if count == 3 || (isAlive(p, x, y, temp) && count == 2){
+					world[y][x] = 1
+				}else{
+					world[y][x] = 0
+				}
+
+
+				// for all neighbours, if number of 0xFF < 2 die, if number of 0xFF>3 die, if dead and number of 0xFF == 3 alive
+				//neighbours := [8]{(x, y-1), (x, y+1), (x+1,y), (x-1, y), (x+1, y+1)(x+1, y-1), (x-1,y+1), (x-1, y-1)}
 				// Placeholder for the actual Game of Life logic: flips alive cells to dead and dead cells to alive.
-				world[y][x] = world[y][x] ^ 0xFF
+
 			}
+		}
+		for i := range world{
+			copy(temp[i], world[i])
 		}
 	}
 

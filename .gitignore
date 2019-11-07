@@ -5,8 +5,36 @@
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
-*.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+.idea/
+
+gameoflife
+gameoflife.test
+
+out/
+
+cpu\.prof
+
+mem\.prof
+
+*.qcow2
+
+profile*\.pdf
+
+gol-ref\.go
+
+base-out\.txt
+
+base-time\.txt
+
+baseline-out\.txt
+
+baseline-time\.txt
+
+compare
+
+your-out\.txt
+
+your-time\.txt
