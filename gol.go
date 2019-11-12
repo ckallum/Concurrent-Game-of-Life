@@ -8,7 +8,7 @@ import (
 
 func sendWorld(p golParams, world [][]byte, d distributorChans){
 	d.io.command <- ioOutput
-	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight)}, "x")
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight) + "-" + strconv.Itoa(p.turns)}, "x")
 
 	for y := range world{
 		for x := range world[y]{
