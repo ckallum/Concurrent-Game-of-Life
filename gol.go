@@ -6,10 +6,20 @@ import (
 	"strings"
 )
 
+func sendWorld(p golParams, world [][]byte, d distributorChans){
+	d.io.command <- ioOutput
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight)}, "x")
+
+	for y := range world{
+		for x := range world[y]{
+			d.io.outputVal <- world[y][x]
+		}
+	}
+}
 
 func isAlive(p golParams, x, y int, temp [][]byte) bool{
 	x+= p.imageWidth
-	x %= p.imageWidth
+	x%= p.imageWidth
 	y+=p.imageHeight
 	y%=p.imageHeight
 	//fmt.Println(x, y)
@@ -90,6 +100,8 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 			}
 		}
 	}
+
+	sendWorld(p, temp, d)
 
 	// Make sure that the Io has finished any output before exiting.
 	d.io.command <- ioCheckIdle
