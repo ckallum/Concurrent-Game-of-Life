@@ -17,17 +17,53 @@ func sendWorld(p golParams, world [][]byte, d distributorChans){
 	}
 }
 
-func isAlive(p golParams, x, y int, temp [][]byte) bool{
-	x+= p.imageWidth
-	x%= p.imageWidth
-	y+=p.imageHeight
-	y%=p.imageHeight
-	//fmt.Println(x, y)
-	if temp[y][x] == 0{
+
+func isAlive(imageWidth, x, y int, world [][]byte) bool{
+	x+= imageWidth
+	x%= imageWidth
+
+	if world[y][x] == 0{
 		return false
 	}else{
 		return true
+
 	}
+}
+
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams){
+	workerWorld := make([][]byte, haloHeight)
+	for i := range workerWorld{
+		workerWorld[i] = make([]byte, p.imageWidth)
+	}
+	for {
+		for y := 0; y < haloHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				//fmt.Println("hi")
+				workerWorld[y][x] = <- in
+			}
+		}
+
+		for y := 1; y < haloHeight-1; y++{
+			for x := 0; x< p.imageWidth; x++ {
+				count := 0
+				for i := -1; i <= 1; i++ {
+					for j := -1; j <= 1; j++ {
+						if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
+							count++
+						}
+					}
+				}
+				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
+					out <- 1
+				} else {
+					out <- 0
+				}
+			}
+		}
+	}
+
+
+
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -53,42 +89,43 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 			}
 		}
 	}
-	temp:= make([][]byte, p.imageHeight)
-	for i := range world{
-		temp[i] = make([]byte, p.imageWidth)
-		copy(temp[i], world[i])
-
-	}
-
+	threadHeight := p.imageHeight/p.threads
+	in := make([]chan byte, p.threads)
+	out := make([] chan byte, p.threads)
 	// Calculate the new state of Game of Life after the given number of turns.
+	for i := 0; i<p.threads; i++{
+		in[i] = make(chan byte)
+		out[i] = make(chan byte)
+	}
+	for i := 0; i< p.threads; i++{
+		go worker(threadHeight+2, in[i], out[i], p)
+	}
 	for turns := 0; turns < p.turns; turns++ {
-		for y := 0; y < p.imageHeight; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				count := 0
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						if (j != 0 || i != 0) && isAlive(p, x+i, y+j, temp){
-							count++
-						}
+		for i := 0; i< p.threads; i++{
+			for y := 0; y < (threadHeight)+2; y++ {
+				for x := 0; x < p.imageWidth; x++ {
+					proposedY:= y+(i*threadHeight)-1
+
+					if proposedY<0{
+						proposedY += p.imageHeight
 					}
+					proposedY %= p.imageHeight
+					in[i] <- world[proposedY][x]
 				}
-				if count == 3 || (isAlive(p, x, y, temp) && count == 2){
-					world[y][x] = 1
-				}else{
-					world[y][x] = 0
-				}
-
-
-				// for all neighbours, if number of 0xFF < 2 die, if number of 0xFF>3 die, if dead and number of 0xFF == 3 alive
-				//neighbours := [8]{(x, y-1), (x, y+1), (x+1,y), (x-1, y), (x+1, y+1)(x+1, y-1), (x-1,y+1), (x-1, y-1)}
-				// Placeholder for the actual Game of Life logic: flips alive cells to dead and dead cells to alive.
 
 			}
 		}
-		for i := range world{
-			copy(temp[i], world[i])
+		for i := 0; i< p.threads; i++{
+			for y := 0; y < threadHeight; y++ {
+				for x := 0; x < p.imageWidth; x++ {
+					world[y+(i*(threadHeight))][x] = <- out[i]
+
+				}
+			}
 		}
 	}
+
+
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
@@ -101,7 +138,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 		}
 	}
 
-	sendWorld(p, temp, d)
+	sendWorld(p, world, d)
 
 	// Make sure that the Io has finished any output before exiting.
 	d.io.command <- ioCheckIdle
