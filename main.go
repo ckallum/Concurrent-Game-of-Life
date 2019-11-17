@@ -91,6 +91,7 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 
 	aliveCells := make(chan []cell)
 
+	//creating worker channels and running them concurrently
 	threadHeight := p.imageHeight/p.threads
 	in := make([]chan byte, p.threads)
 	out := make([] chan byte, p.threads)

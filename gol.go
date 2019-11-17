@@ -21,7 +21,6 @@ func sendWorld(p golParams, world [][]byte, d distributorChans){
 func isAlive(imageWidth, x, y int, world [][]byte) bool{
 	x+= imageWidth
 	x%= imageWidth
-
 	if world[y][x] == 0{
 		return false
 	}else{
@@ -61,9 +60,6 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams){
 			}
 		}
 	}
-
-
-
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
