@@ -90,7 +90,6 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	ioChans.distributor.outputVal = outputVal
 
 	aliveCells := make(chan []cell)
-	//
 
 	threadHeight := p.imageHeight/p.threads
 	in := make([]chan byte, p.threads)
