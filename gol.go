@@ -86,16 +86,15 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 	threadHeight := p.imageHeight/p.threads
-	for turns := 0; turns < p.turns; turns++ {
+	for turn := 0; turn < p.turns; turn++ {
 		for i := 0; i< p.threads; i++{
 			for y := 0; y < (threadHeight)+2; y++ {
+				proposedY:= y+(i*threadHeight)-1
+				if proposedY<0{
+					proposedY += p.imageHeight
+				}
+				proposedY %= p.imageHeight
 				for x := 0; x < p.imageWidth; x++ {
-					proposedY:= y+(i*threadHeight)-1
-
-					if proposedY<0{
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
 					in[i] <- world[proposedY][x]
 				}
 
@@ -108,6 +107,16 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 
 				}
 			}
+		}
+		select{
+		case keyValue := <-d.key:
+			char:= string(keyValue)
+			if char == "s"{
+				fmt.Println("S Pressed")
+				d.io.command <- ioOutput
+				d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn"+strconv.Itoa(turn)},"x")
+			}
+		default:
 		}
 	}
 

@@ -54,6 +54,7 @@ type ioToDistributor struct {
 // distributorChans stores all the chans that the distributor goroutine will use.
 type distributorChans struct {
 	io distributorToIo
+	key <- chan rune
 }
 
 // ioChans stores all the chans that the io goroutine will use.
@@ -68,7 +69,7 @@ type ioChans struct {
 func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	var dChans distributorChans
 	var ioChans ioChans
-
+	dChans.key = keyChan
 	ioCommand := make(chan ioCommand)
 	dChans.io.command = ioCommand
 	ioChans.distributor.command = ioCommand
@@ -88,6 +89,8 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	outputVal := make(chan uint8)
 	dChans.io.outputVal = outputVal
 	ioChans.distributor.outputVal = outputVal
+
+
 
 	aliveCells := make(chan []cell)
 
@@ -138,7 +141,8 @@ func main() {
 	params.turns = 10000000000
 
 	startControlServer(params)
-	go getKeyboardCommand(nil)
-	gameOfLife(params, nil)
+	keyChan := make(chan rune)
+	go getKeyboardCommand(keyChan)
+	gameOfLife(params, keyChan)
 	StopControlServer()
 }
