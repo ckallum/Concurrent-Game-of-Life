@@ -6,44 +6,43 @@ import (
 	"strings"
 )
 
-func sendWorld(p golParams, world [][]byte, d distributorChans){
+func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight) + "-" + strconv.Itoa(p.turns)}, "x")
 
-	for y := range world{
-		for x := range world[y]{
+	for y := range world {
+		for x := range world[y] {
 			d.io.outputVal <- world[y][x]
 		}
 	}
 }
 
-
-func isAlive(imageWidth, x, y int, world [][]byte) bool{
-	x+= imageWidth
-	x%= imageWidth
-	if world[y][x] == 0{
+func isAlive(imageWidth, x, y int, world [][]byte) bool {
+	x += imageWidth
+	x %= imageWidth
+	if world[y][x] == 0 {
 		return false
-	}else{
+	} else {
 		return true
 
 	}
 }
 
-func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams){
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 	workerWorld := make([][]byte, haloHeight)
-	for i := range workerWorld{
+	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
 	}
 	for {
 		for y := 0; y < haloHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
 				//fmt.Println("hi")
-				workerWorld[y][x] = <- in
+				workerWorld[y][x] = <-in
 			}
 		}
 
-		for y := 1; y < haloHeight-1; y++{
-			for x := 0; x< p.imageWidth; x++ {
+		for y := 1; y < haloHeight-1; y++ {
+			for x := 0; x < p.imageWidth; x++ {
 				count := 0
 				for i := -1; i <= 1; i++ {
 					for j := -1; j <= 1; j++ {
@@ -85,42 +84,63 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			}
 		}
 	}
-	threadHeight := p.imageHeight/p.threads
+	threadHeight := p.imageHeight / p.threads
 	for turn := 0; turn < p.turns; turn++ {
-		for i := 0; i< p.threads; i++{
-			for y := 0; y < (threadHeight)+2; y++ {
-				proposedY:= y+(i*threadHeight)-1
-				if proposedY<0{
-					proposedY += p.imageHeight
-				}
-				proposedY %= p.imageHeight
-				for x := 0; x < p.imageWidth; x++ {
-					in[i] <- world[proposedY][x]
-				}
-
-			}
-		}
-		for i := 0; i< p.threads; i++{
-			for y := 0; y < threadHeight; y++ {
-				for x := 0; x < p.imageWidth; x++ {
-					world[y+(i*(threadHeight))][x] = <- out[i]
-
-				}
-			}
-		}
-		select{
+		select {
 		case keyValue := <-d.key:
-			char:= string(keyValue)
-			if char == "s"{
+			char := string(keyValue)
+			if char == "s" {
 				fmt.Println("S Pressed")
 				d.io.command <- ioOutput
-				d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn"+strconv.Itoa(turn)},"x")
+				d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
 			}
+			if char == "q" {
+				fmt.Println("Q pressed, breaking from loop")
+				return
+			}
+			if char == "p" {
+				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				for{
+					select {
+					case keyValue := <-d.key:
+						char := string(keyValue)
+						if char == "p" {
+							fmt.Println("Continuing")
+							return
+						}
+					default:
+
+					}
+				}
+			}
+
+
+
 		default:
+			for i := 0; i < p.threads; i++ {
+				for y := 0; y < (threadHeight)+2; y++ {
+					proposedY := y + (i * threadHeight) - 1
+					if proposedY < 0 {
+						proposedY += p.imageHeight
+					}
+					proposedY %= p.imageHeight
+					for x := 0; x < p.imageWidth; x++ {
+						in[i] <- world[proposedY][x]
+					}
+
+				}
+			}
+			for i := 0; i < p.threads; i++ {
+				for y := 0; y < threadHeight; y++ {
+					for x := 0; x < p.imageWidth; x++ {
+						world[y+(i*(threadHeight))][x] = <-out[i]
+
+					}
+				}
+			}
 		}
+
 	}
-
-
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
