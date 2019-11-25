@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func sendWorld(p golParams, world [][]byte, d distributorChans) {
@@ -17,12 +18,12 @@ func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	}
 }
 
-func sendWorldChar(p golParams, world [][]byte, d distributorChans, turn int) {
-	d.io.command <- ioOutput
-	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
-	for y := range world {
-		for x := range world[y] {
-			d.io.outputVal <- world[y][x]
+func printCells(p golParams, world[][]byte){
+	for y := 0; y < p.imageHeight; y++ {
+		for x := 0; x < p.imageWidth; x++ {
+			if world[y][x] == 0 {
+				fmt.Println("Alive cell at", x, y)
+			}
 		}
 	}
 }
@@ -46,7 +47,6 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 	for {
 		for y := 0; y < haloHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
-				//fmt.Println("hi")
 				workerWorld[y][x] = <-in
 			}
 		}
@@ -95,6 +95,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 	threadHeight := p.imageHeight / p.threads
+	ticker:= time.NewTicker(2*time.Second)
 
 	loop1:for turn := 0; turn < p.turns; turn++ {
 		select {
@@ -102,7 +103,15 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			char := string(keyValue)
 			if char == "s" {
 				fmt.Println("S Pressed")
-				go sendWorldChar(p, world, d, turn)
+				go func() {
+					d.io.command <- ioOutput
+					d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
+					for y := range world {
+						for x := range world[y] {
+							d.io.outputVal <- world[y][x]
+						}
+					}
+				}()
 			}
 			if char == "q" {
 				fmt.Println("Q pressed, breaking from loop")
@@ -110,12 +119,14 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			}
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				ticker.Stop()
 				loop:for {
 					select {
 					case keyValue := <-d.key:
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
+							ticker = time.NewTicker(2*time.Second)
 							break loop
 						}
 					default:
