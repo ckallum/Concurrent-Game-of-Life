@@ -17,6 +17,16 @@ func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	}
 }
 
+func sendWorldChar(p golParams, world [][]byte, d distributorChans, turn int) {
+	d.io.command <- ioOutput
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
+	for y := range world {
+		for x := range world[y] {
+			d.io.outputVal <- world[y][x]
+		}
+	}
+}
+
 func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	x += imageWidth
 	x %= imageWidth
@@ -85,36 +95,33 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 	threadHeight := p.imageHeight / p.threads
-	for turn := 0; turn < p.turns; turn++ {
+
+	loop1:for turn := 0; turn < p.turns; turn++ {
 		select {
 		case keyValue := <-d.key:
 			char := string(keyValue)
 			if char == "s" {
 				fmt.Println("S Pressed")
-				d.io.command <- ioOutput
-				d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
+				go sendWorldChar(p, world, d, turn)
 			}
 			if char == "q" {
 				fmt.Println("Q pressed, breaking from loop")
-				return
+				break loop1
 			}
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-				for{
+				loop:for {
 					select {
 					case keyValue := <-d.key:
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
-							return
+							break loop
 						}
 					default:
-
 					}
 				}
 			}
-
-
 
 		default:
 			for i := 0; i < p.threads; i++ {
