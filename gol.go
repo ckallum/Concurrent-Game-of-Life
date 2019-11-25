@@ -18,14 +18,16 @@ func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	}
 }
 
-func printCells(p golParams, world[][]byte){
+func printCells(p golParams, world [][]byte) {
+	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
-			if world[y][x] == 0 {
-				fmt.Println("Alive cell at", x, y)
+			if world[y][x] == 1 {
+				alive ++
 			}
 		}
 	}
+	fmt.Println("Number of Alive Cells:", alive)
 }
 
 func isAlive(imageWidth, x, y int, world [][]byte) bool {
@@ -95,9 +97,10 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 	threadHeight := p.imageHeight / p.threads
-	ticker:= time.NewTicker(2*time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 
-	loop1:for turn := 0; turn < p.turns; turn++ {
+loop1:
+	for turn := 0; turn < p.turns; turn++ {
 		select {
 		case keyValue := <-d.key:
 			char := string(keyValue)
@@ -120,19 +123,22 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
 				ticker.Stop()
-				loop:for {
+			loop:
+				for {
 					select {
 					case keyValue := <-d.key:
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
-							ticker = time.NewTicker(2*time.Second)
+							ticker = time.NewTicker(2 * time.Second)
 							break loop
 						}
 					default:
 					}
 				}
 			}
+		case <-ticker.C:
+			go printCells(p, world)
 
 		default:
 			for i := 0; i < p.threads; i++ {
