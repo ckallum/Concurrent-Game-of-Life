@@ -9,10 +9,10 @@ import (
 
 func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	d.io.command <- ioOutput
-	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight) + "-" + strconv.Itoa(p.turns)}, "x")
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight)}, "x")
 
-	for y := range world {
-		for x := range world[y] {
+	for y := 0; y< p.imageHeight; y++ {
+		for x := 0; x<p.imageWidth; x++{
 			d.io.outputVal <- world[y][x]
 		}
 	}
@@ -108,9 +108,9 @@ loop1:
 				fmt.Println("S Pressed")
 				go func() {
 					d.io.command <- ioOutput
-					d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn" + strconv.Itoa(turn)}, "x")
-					for y := range world {
-						for x := range world[y] {
+					d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
+					for y := 0; y< p.imageHeight; y++ {
+						for x := 0; x<p.imageWidth; x++ {
 							d.io.outputVal <- world[y][x]
 						}
 					}
@@ -122,7 +122,7 @@ loop1:
 			}
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-				ticker.Stop()
+				//ticker.Stop()
 			loop:
 				for {
 					select {
@@ -130,7 +130,7 @@ loop1:
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
-							ticker = time.NewTicker(2 * time.Second)
+							//ticker = time.NewTicker(2 * time.Second)
 							break loop
 						}
 					default:
@@ -165,6 +165,8 @@ loop1:
 		}
 
 	}
+	go sendWorld(p, world, d)
+
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
@@ -177,7 +179,6 @@ loop1:
 		}
 	}
 
-	sendWorld(p, world, d)
 
 	// Make sure that the Io has finished any output before exiting.
 	d.io.command <- ioCheckIdle

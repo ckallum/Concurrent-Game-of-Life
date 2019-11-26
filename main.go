@@ -70,6 +70,7 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	var dChans distributorChans
 	var ioChans ioChans
 	dChans.key = keyChan
+
 	ioCommand := make(chan ioCommand)
 	dChans.io.command = ioCommand
 	ioChans.distributor.command = ioCommand
