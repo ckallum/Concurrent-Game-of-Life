@@ -151,7 +151,6 @@ loop1:
 					for x := 0; x < p.imageWidth; x++ {
 						in[i] <- world[proposedY][x]
 					}
-
 				}
 			}
 			for i := 0; i < p.threads; i++ {
