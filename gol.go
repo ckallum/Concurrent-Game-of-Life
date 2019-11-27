@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-func sendWorld(p golParams, world [][]byte, d distributorChans) {
+func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
-	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight)}, "x")
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
 
-	for y := 0; y< p.imageHeight; y++ {
-		for x := 0; x<p.imageWidth; x++{
+	for y := range world {
+		for x := range world[y] {
 			d.io.outputVal <- world[y][x]
 		}
 	}
 }
 
-func printCells(p golParams, world [][]byte) {
+func printAliveCells(p golParams, world [][]byte) {
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
@@ -91,12 +91,13 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		for x := 0; x < p.imageWidth; x++ {
 			val := <-d.io.inputVal
 			if val != 0 {
-				fmt.Println("Alive cell at", x, y)
 				world[y][x] = val
 			}
 		}
 	}
 	threadHeight := p.imageHeight / p.threads
+	extra := p.imageHeight % p.threads
+	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
 loop1:
@@ -106,15 +107,8 @@ loop1:
 			char := string(keyValue)
 			if char == "s" {
 				fmt.Println("S Pressed")
-				go func() {
-					d.io.command <- ioOutput
-					d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
-					for y := 0; y< p.imageHeight; y++ {
-						for x := 0; x<p.imageWidth; x++ {
-							d.io.outputVal <- world[y][x]
-						}
-					}
-				}()
+				go sendWorld(p, world, d, turn)
+				printAliveCells(p, world)
 			}
 			if char == "q" {
 				fmt.Println("Q pressed, breaking from loop")
@@ -138,11 +132,15 @@ loop1:
 				}
 			}
 		case <-ticker.C:
-			go printCells(p, world)
+			go printAliveCells(p, world)
 
 		default:
 			for i := 0; i < p.threads; i++ {
-				for y := 0; y < (threadHeight)+2; y++ {
+				yBound := threadHeight + 2
+				if i == p.threads-1 && !powerOfTwo(p) {
+					yBound += extra
+				}
+				for y := 0; y < yBound; y++ {
 					proposedY := y + (i * threadHeight) - 1
 					if proposedY < 0 {
 						proposedY += p.imageHeight
@@ -157,15 +155,19 @@ loop1:
 				for y := 0; y < threadHeight; y++ {
 					for x := 0; x < p.imageWidth; x++ {
 						world[y+(i*(threadHeight))][x] = <-out[i]
-
+					}
+				}
+			}
+			if !powerOfTwo(p) {
+				for e := 1; e <= extra; e++ {
+					for x := 0; x < p.imageWidth; x++ {
+						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 					}
 				}
 			}
 		}
-
 	}
-	go sendWorld(p, world, d)
-
+	sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
@@ -177,7 +179,6 @@ loop1:
 			}
 		}
 	}
-
 
 	// Make sure that the Io has finished any output before exiting.
 	d.io.command <- ioCheckIdle

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -62,6 +62,7 @@ func Test(t *testing.T) {
 				{x: 5, y: 7},
 			},
 		}},
+		//
 
 		{"16x16x2-1", args{
 			p: golParams{
@@ -111,6 +112,7 @@ func Test(t *testing.T) {
 			},
 		}},
 
+
 		{"16x16x2-100", args{
 			p: golParams{
 				turns:       100,
@@ -159,7 +161,143 @@ func Test(t *testing.T) {
 			},
 		}},
 
-		// Special test to be used to generate traces - not a real test
+		{"16x16x6-100", args{
+			p: golParams{
+				turns:       100,
+				threads:     6,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 12, y: 0},
+				{x: 13, y: 0},
+				{x: 14, y: 0},
+				{x: 13, y: 14},
+				{x: 14, y: 15},
+			},
+		}},
+		{"16x16x10-100", args{
+			p: golParams{
+				turns:       100,
+				threads:     10,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 12, y: 0},
+				{x: 13, y: 0},
+				{x: 14, y: 0},
+				{x: 13, y: 14},
+				{x: 14, y: 15},
+			},
+		}},
+		{"16x16x12-100", args{
+			p: golParams{
+				turns:       100,
+				threads:     12,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 12, y: 0},
+				{x: 13, y: 0},
+				{x: 14, y: 0},
+				{x: 13, y: 14},
+				{x: 14, y: 15},
+			},
+		}},
+		{"16x16x6-1", args{
+			p: golParams{
+				turns:       1,
+				threads:     6,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 3, y: 6},
+				{x: 5, y: 6},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+				{x: 4, y: 8},
+			},
+		}},
+		{"16x16x10-1", args{
+			p: golParams{
+				turns:       1,
+				threads:     10,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 3, y: 6},
+				{x: 5, y: 6},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+				{x: 4, y: 8},
+			},
+		}},
+		{"16x16x12-1", args{
+			p: golParams{
+				turns:       1,
+				threads:     12,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 3, y: 6},
+				{x: 5, y: 6},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+				{x: 4, y: 8},
+			},
+		}},
+		{"16x16x6-0", args{
+			p: golParams{
+				turns:       0,
+				threads:     6,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 4, y: 5},
+				{x: 5, y: 6},
+				{x: 3, y: 7},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+			},
+		}},
+		{"16x16x10-0", args{
+			p: golParams{
+				turns:       0,
+				threads:     10,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 4, y: 5},
+				{x: 5, y: 6},
+				{x: 3, y: 7},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+			},
+		}},
+		{"16x16x12-0", args{
+			p: golParams{
+				turns:       0,
+				threads:     12,
+				imageWidth:  16,
+				imageHeight: 16,
+			},
+			expectedAlive: []cell{
+				{x: 4, y: 5},
+				{x: 5, y: 6},
+				{x: 3, y: 7},
+				{x: 4, y: 7},
+				{x: 5, y: 7},
+			},
+		}},
+
+		//Special test to be used to generate traces - not a real test
 		//{"trace", args{
 		//	p: golParams{
 		//		turns:       10,
@@ -168,13 +306,14 @@ func Test(t *testing.T) {
 		//		imageHeight: 64,
 		//	},
 		//}},
+
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			alive := gameOfLife(test.args.p, nil)
 			//fmt.Println("Ran test:", test.name)
 			if test.name != "trace" {
-				assert.ElementsMatch(t, alive, test.args.expectedAlive)
+				assertEqualBoard(t, alive, test.args.expectedAlive, test.args.p)
 			}
 		})
 	}
@@ -316,4 +455,41 @@ func Benchmark(b *testing.B) {
 			}
 		})
 	}
+}
+
+func boardFail(t *testing.T, given, expected []cell, p golParams) bool {
+	errorString := fmt.Sprintf("-----------------\n\n  FAILED TEST\n  16x16\n  %d Workers\n  %d Turns\n", p.threads, p.turns)
+	errorString = errorString + aliveCellsToString(given, expected, p.imageWidth, p.imageHeight)
+	t.Error(errorString)
+	return false
+}
+
+func assertEqualBoard(t *testing.T, given, expected []cell, p golParams) bool {
+	givenLen := len(given)
+	expectedLen := len(expected)
+
+	if givenLen != expectedLen {
+		return boardFail(t, given, expected, p)
+	}
+
+	visited := make([]bool, expectedLen)
+	for i := 0; i < givenLen; i++ {
+		element := given[i]
+		found := false
+		for j := 0; j < expectedLen; j++ {
+			if visited[j] {
+				continue
+			}
+			if expected[j] == element {
+				visited[j] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return boardFail(t, given, expected, p)
+		}
+	}
+
+	return true
 }

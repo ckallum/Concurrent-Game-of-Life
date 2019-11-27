@@ -23,7 +23,7 @@ test:
 
 # bench will run all tests before benchmarking - they must all pass
 bench:
-	go test -bench .
+	go test -bench
 
 compare:
 	./comparison/compare.sh

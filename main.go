@@ -1,6 +1,8 @@
 package main
 
-import "flag"
+import (
+	"flag"
+)
 
 // golParams provides the details of how to run the Game of Life and which image to load.
 type golParams struct {
@@ -62,6 +64,10 @@ type ioChans struct {
 	distributor ioToDistributor
 }
 
+func powerOfTwo(p golParams) bool{
+	return (p.threads & (p.threads-1)) == 0
+}
+
 // gameOfLife is the function called by the testing framework.
 // It makes some channels and starts relevant goroutines.
 // It places the created channels in the relevant structs.
@@ -93,7 +99,6 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 
 
 
-	aliveCells := make(chan []cell)
 
 	//creating worker channels and running them concurrently
 	threadHeight := p.imageHeight/p.threads
@@ -103,9 +108,20 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 		in[i] = make(chan byte)
 		out[i] = make(chan byte)
 	}
-	for i := 0; i< p.threads; i++{
-		go worker(threadHeight+2, in[i], out[i], p)
+	if powerOfTwo(p){
+		for i := 0; i< p.threads; i++{
+			go worker(threadHeight+2, in[i], out[i], p)
+		}
+	}else{
+		extra := p.imageHeight % p.threads
+		for i := 0; i< p.threads-1; i++{
+			go worker(threadHeight+2, in[i], out[i], p)
+		}
+		go worker(threadHeight+2+extra, in[p.threads-1], out[p.threads-1], p)
 	}
+
+	aliveCells := make(chan []cell)
+
 	go distributor(p, dChans, aliveCells, in, out)
 	// Reads in board from file, then writes image to disk.
 	go pgmIo(p, ioChans)
@@ -139,7 +155,7 @@ func main() {
 
 	flag.Parse()
 
-	params.turns = 100
+	params.turns = 1000
 
 	startControlServer(params)
 	keyChan := make(chan rune)
