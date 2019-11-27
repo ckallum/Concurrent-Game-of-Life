@@ -159,8 +159,9 @@ loop1:
 				}
 			}
 			if !powerOfTwo(p) {
-				for e := 1; e <= extra; e++ {
+				for e := 0; e < extra; e++ {
 					for x := 0; x < p.imageWidth; x++ {
+						//fmt.Println(strconv.Itoa(e+(p.threads*(threadHeight))))
 						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 					}
 				}
