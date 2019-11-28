@@ -97,7 +97,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
-	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
 loop1:
@@ -115,19 +114,12 @@ loop1:
 				break loop1
 			}
 			if char == "p" {
-				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-				//ticker.Stop()
+				fmt.Println("P pressed, pausing at turn: " + strconv.Itoa(turn))
 			loop:
 				for {
-					select {
-					case keyValue := <-d.key:
-						char := string(keyValue)
-						if char == "p" {
-							fmt.Println("Continuing")
-							//ticker = time.NewTicker(2 * time.Second)
-							break loop
-						}
-					default:
+					if string(<-d.key) == "p" {
+						fmt.Println("Continuing")
+						break loop
 					}
 				}
 			}
