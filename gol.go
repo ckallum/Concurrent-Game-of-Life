@@ -76,7 +76,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 
 Stage 4 Idea:
 - https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
-- Each thread manages one halo/row
+- Each thread manages two halo's/row's
 	- each thread must receive from two other threads/halos each turn.
 		- Turn Start:
 			- each thread sends out its halo
@@ -88,6 +88,7 @@ Stage 4 Idea:
 threads to process next turn.
 - Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
 receive world from all threads.
+- Use in[i] channel again distributor to signal inputs to workers again.
 **/
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -116,6 +117,23 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	extra := p.imageHeight % p.threads
 	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
+
+	for i := 0; i < p.threads; i++ {
+		yBound := threadHeight + 2
+		if i == p.threads-1 && !powerOfTwo(p) {
+			yBound += extra
+		}
+		for y := 0; y < yBound; y++ {
+			proposedY := y + (i * threadHeight) - 1
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			for x := 0; x < p.imageWidth; x++ {
+				in[i] <- world[proposedY][x]
+			}
+		}
+	}
 
 loop1:
 	for turn := 0; turn < p.turns; turn++ {
@@ -150,37 +168,20 @@ loop1:
 			}
 		case <-ticker.C:
 			go printAliveCells(p, world)
-
 		default:
-			for i := 0; i < p.threads; i++ {
-				yBound := threadHeight + 2
-				if i == p.threads-1 && !powerOfTwo(p) {
-					yBound += extra
-				}
-				for y := 0; y < yBound; y++ {
-					proposedY := y + (i * threadHeight) - 1
-					if proposedY < 0 {
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
-					for x := 0; x < p.imageWidth; x++ {
-						in[i] <- world[proposedY][x]
-					}
-				}
+		}
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
 			}
-			for i := 0; i < p.threads; i++ {
-				for y := 0; y < threadHeight; y++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[y+(i*(threadHeight))][x] = <-out[i]
-					}
-				}
-			}
-			if !powerOfTwo(p) {
-				for e := 0; e < extra; e++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-					}
-				}
+		}
+	}
+	if !powerOfTwo(p) {
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 			}
 		}
 	}
