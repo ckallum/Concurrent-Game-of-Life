@@ -102,8 +102,8 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	in := make([]chan byte, p.threads)
 	out := make([] chan byte, p.threads)
 	for i := 0; i<p.threads; i++{
-		in[i] = make(chan byte)
-		out[i] = make(chan byte)
+		in[i] = make(chan byte, p.imageHeight)
+		out[i] = make(chan byte, p.imageHeight)
 	}
 	if powerOfTwo(p){
 		for i := 0; i< p.threads; i++{
