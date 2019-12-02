@@ -134,7 +134,6 @@ loop1:
 			}
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-				//ticker.Stop()
 			loop:
 				for {
 					select {
@@ -142,7 +141,6 @@ loop1:
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
-							//ticker = time.NewTicker(2 * time.Second)
 							break loop
 						}
 					default:
