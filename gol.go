@@ -32,11 +32,10 @@ func countAliveCells(p golParams, world [][]byte) {
 func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	x += imageWidth
 	x %= imageWidth
-	if world[y][x] == 0 {
+	if world[y][x] != 0xFF {
 		return false
 	} else {
 		return true
-
 	}
 }
 
@@ -59,18 +58,24 @@ func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, ex
 	}
 }
 
-func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
+func buildWorld(p golParams, haloHeight int)[][]byte{
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
 	}
+	return workerWorld
+}
+
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
+	workerWorld := buildWorld(p, haloHeight)
 	for y := 0; y < haloHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			workerWorld[y][x] = <-in
 		}
 	}
+	temp := buildWorld(p, haloHeight)
 
-	for {
+	for{
 		select {
 		case val := <- in:
 			if val == 0xAA{
@@ -82,6 +87,8 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 					workerWorld[0][x] = <-receiving[0]
 					workerWorld[haloHeight-1][x] = <- receiving[1]
 				}
+
+				//GOL Logic
 				for y := 1; y < haloHeight-1; y++ {
 					for x := 0; x < p.imageWidth; x++ {
 						count := 0
@@ -93,12 +100,16 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 							}
 						}
 						if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-							workerWorld[y][x] = 0xFF
+							temp[y][x] = 0xFF
 						} else {
-							workerWorld[y][x] = 00
+							temp[y][x] = 0
 						}
 					}
 				}
+
+				tmp := workerWorld
+				workerWorld = temp
+				temp = tmp
 			}
 			if val == 0xAB{
 				for y := 1; y < haloHeight-1; y++ {
@@ -158,7 +169,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		//	}
 		//	if char == "p" {
 		//		fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-		//		//ticker.Stop()
 		//	loop:
 		//		for {
 		//			select {
@@ -166,7 +176,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		//				char := string(keyValue)
 		//				if char == "p" {
 		//					fmt.Println("Continuing")
-		//					//ticker = time.NewTicker(2 * time.Second)
 		//					break loop
 		//				}
 		//			default:
@@ -215,3 +224,4 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	// Return the coordinates of cells that are still alive.
 	alive <- finalAlive
 }
+
