@@ -101,20 +101,29 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	threadHeight := p.imageHeight/p.threads
 	in := make([]chan byte, p.threads)
 	out := make([] chan byte, p.threads)
+	haloChannels:= make([][]chan byte, p.threads)
 	for i := 0; i<p.threads; i++{
+		haloChannels[i] = make([]chan byte, 2)
+		for j:= 0; j<2 ;j++{
+			haloChannels[i][j] = make(chan byte, p.imageHeight)
+		}
 		in[i] = make(chan byte, p.imageHeight)
 		out[i] = make(chan byte, p.imageHeight)
 	}
+
 	if powerOfTwo(p){
 		for i := 0; i< p.threads; i++{
-			go worker(threadHeight+2, in[i], out[i], p)
+			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[i+1 % p.threads][0]}
+			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving)
 		}
 	}else{
 		extra := p.imageHeight % p.threads
 		for i := 0; i< p.threads-1; i++{
-			go worker(threadHeight+2, in[i], out[i], p)
+			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[i+1 % p.threads][0]}
+			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving)
 		}
-		go worker(threadHeight+2+extra, in[p.threads-1], out[p.threads-1], p)
+		receiving := [2]chan byte{haloChannels[p.threads-2][1], haloChannels[0][0]}
+		go worker(threadHeight+2+extra, in[p.threads-1], out[p.threads-1], p, haloChannels[p.threads-1], receiving)
 	}
 
 	aliveCells := make(chan []cell)

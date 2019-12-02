@@ -41,16 +41,24 @@ func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	}
 }
 
-func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
 	}
+	for y := 0; y < haloHeight; y++ {
+		for x := 0; x < p.imageWidth; x++ {
+			workerWorld[y][x] = <-in
+		}
+	}
 	for {
-		for y := 0; y < haloHeight; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				workerWorld[y][x] = <-in
-			}
+		for x := 0; x < p.imageWidth; x++ {
+			sending[0] <- workerWorld[1][x]
+			sending[1] <- workerWorld[haloHeight-2][x]
+		}
+		for x := 0; x < p.imageWidth; x++ {
+			workerWorld[0][x] = <-receiving[0]
+			workerWorld[haloHeight-1][x] = <- receiving[1]
 		}
 
 		for y := 1; y < haloHeight-1; y++ {
@@ -71,6 +79,43 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 			}
 		}
 	}
+}
+
+func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, extra int){
+	for i := 0; i < p.threads; i++ {
+		yBound := threadHeight + 2
+		if i == p.threads-1 && !powerOfTwo(p) {
+			yBound += extra
+		}
+		for y := 0; y < yBound; y++ {
+			proposedY := y + (i * threadHeight) - 1
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			for x := 0; x < p.imageWidth; x++ {
+				in[i] <- world[proposedY][x]
+			}
+		}
+	}
+}
+
+func receiveWorld(p golParams, world [][]byte, out []chan byte, threadHeight int, extra int)[][]byte{
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	if !powerOfTwo(p) {
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
+			}
+		}
+	}
+	return world
 }
 /**
 
@@ -118,22 +163,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
-	for i := 0; i < p.threads; i++ {
-		yBound := threadHeight + 2
-		if i == p.threads-1 && !powerOfTwo(p) {
-			yBound += extra
-		}
-		for y := 0; y < yBound; y++ {
-			proposedY := y + (i * threadHeight) - 1
-			if proposedY < 0 {
-				proposedY += p.imageHeight
-			}
-			proposedY %= p.imageHeight
-			for x := 0; x < p.imageWidth; x++ {
-				in[i] <- world[proposedY][x]
-			}
-		}
-	}
+	giveWorld(p, world, in, threadHeight, extra)
 
 loop1:
 	for turn := 0; turn < p.turns; turn++ {
@@ -171,20 +201,7 @@ loop1:
 		default:
 		}
 	}
-	for i := 0; i < p.threads; i++ {
-		for y := 0; y < threadHeight; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[y+(i*(threadHeight))][x] = <-out[i]
-			}
-		}
-	}
-	if !powerOfTwo(p) {
-		for e := 0; e < extra; e++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-			}
-		}
-	}
+	world = receiveWorld(p, world, out, threadHeight, extra)
 	sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
