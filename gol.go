@@ -72,6 +72,23 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 		}
 	}
 }
+/**
+
+Stage 4 Idea:
+- https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
+- Each thread manages one halo/row
+	- each thread must receive from two other threads/halos each turn.
+		- Turn Start:
+			- each thread sends out its halo
+			- each thread receives from two other threads
+		- Turn End:
+			- each thread processes it's own world and changes it's halo
+
+- Have a 'DoneManager' that checks all threads are done working on the current turn->once buffer fills-> send signal to
+threads to process next turn.
+- Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
+receive world from all threads.
+**/
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
