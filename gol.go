@@ -22,7 +22,7 @@ func printAliveCells(p golParams, world [][]byte) {
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
-			if world[y][x] == 1 {
+			if world[y][x] == 0xFF {
 				alive ++
 			}
 		}
@@ -64,7 +64,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 					}
 				}
 				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-					out <- 1
+					out <- 0xFF
 				} else {
 					out <- 0
 				}
@@ -72,6 +72,24 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 		}
 	}
 }
+/**
+
+Stage 4 Idea:
+- https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
+- Each thread manages two halo's/row's
+	- each thread must receive from two other threads/halos each turn.
+		- Turn Start:
+			- each thread sends out its halo
+			- each thread receives from two other threads
+		- Turn End:
+			- each thread processes it's own world and changes it's halo
+
+- Have a 'DoneManager' that checks all threads are done working on the current turn->once buffer fills-> send signal to
+threads to process next turn.
+- Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
+receive world from all threads.
+- Making sure inputs work i.e. have multiple input channels that pause all workers
+**/
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
@@ -97,6 +115,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
+	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
 loop1:
@@ -114,12 +133,19 @@ loop1:
 				break loop1
 			}
 			if char == "p" {
-				fmt.Println("P pressed, pausing at turn: " + strconv.Itoa(turn))
+				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				//ticker.Stop()
 			loop:
 				for {
-					if string(<-d.key) == "p" {
-						fmt.Println("Continuing")
-						break loop
+					select {
+					case keyValue := <-d.key:
+						char := string(keyValue)
+						if char == "p" {
+							fmt.Println("Continuing")
+							//ticker = time.NewTicker(2 * time.Second)
+							break loop
+						}
+					default:
 					}
 				}
 			}
@@ -153,7 +179,6 @@ loop1:
 			if !powerOfTwo(p) {
 				for e := 0; e < extra; e++ {
 					for x := 0; x < p.imageWidth; x++ {
-						//fmt.Println(strconv.Itoa(e+(p.threads*(threadHeight))))
 						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 					}
 				}
