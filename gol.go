@@ -17,7 +17,7 @@ func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
 	}
 }
 
-func printAliveCells(p golParams, world [][]byte) {
+func countAliveCells(p golParams, world [][]byte) {
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
@@ -40,7 +40,26 @@ func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	}
 }
 
-func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte, done chan int) {
+func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, extra int){
+	for i := 0; i < p.threads; i++ {
+		yBound := threadHeight + 2
+		if i == p.threads-1 && !powerOfTwo(p) {
+			yBound += extra
+		}
+		for y := 0; y < yBound; y++ {
+			proposedY := y + (i * threadHeight) - 1
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			for x := 0; x < p.imageWidth; x++ {
+				in[i] <- world[proposedY][x]
+			}
+		}
+	}
+}
+
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
@@ -50,7 +69,8 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 			workerWorld[y][x] = <-in
 		}
 	}
-	loop:for {
+
+	for {
 		select {
 		case val := <- in:
 			if val == 0xAA{
@@ -75,11 +95,10 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 						if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
 							workerWorld[y][x] = 0xFF
 						} else {
-							workerWorld[y][x] = 0
+							workerWorld[y][x] = 00
 						}
 					}
 				}
-				done<-1
 			}
 			if val == 0xAB{
 				for y := 1; y < haloHeight-1; y++ {
@@ -87,52 +106,13 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 						out <- workerWorld[y][x]
 					}
 				}
-				break loop
 			}
 		}
 	}
 }
-
-func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, extra int){
-	for i := 0; i < p.threads; i++ {
-		yBound := threadHeight + 2
-		if i == p.threads-1 && !powerOfTwo(p) {
-			yBound += extra
-		}
-		for y := 0; y < yBound; y++ {
-			proposedY := y + (i * threadHeight) - 1
-			if proposedY < 0 {
-				proposedY += p.imageHeight
-			}
-			proposedY %= p.imageHeight
-			for x := 0; x < p.imageWidth; x++ {
-				in[i] <- world[proposedY][x]
-			}
-		}
-	}
-}
-
-/**
-
-Stage 4 Idea:
-- https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
-- Each thread manages two halo's/row's
-	- each thread must receive from two other threads/halos each turn.
-		- Turn Start:
-			- each thread sends out its halo
-			- each thread receives from two other threads
-		- Turn End:
-			- each thread processes it's own world and changes it's halo
-
-- Have a 'DoneManager' that checks all threads are done working on the current turn->once buffer fills-> send signal to
-threads to process next turn.
-- Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
-receive world from all threads.
-- Use in[i] channel again distributor to signal inputs to workers again.
-**/
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte, done chan int) {
+func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
 
 	// Create the 2D slice to store the world.
 	world := make([][]byte, p.imageHeight)
@@ -164,16 +144,13 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		for i:= 0; i< p.threads; i++{
 			in[i] <- 0xAA
 		}
-		for i:= 0; i< p.threads; i++{
-			<-done
-		}
+
 		//select {
 		//case keyValue := <-d.key:
 		//	char := string(keyValue)
 		//	if char == "s" {
 		//		fmt.Println("S Pressed")
 		//		go sendWorld(p, world, d, turn)
-		//		printAliveCells(p, world)
 		//	}
 		//	if char == "q" {
 		//		fmt.Println("Q pressed, breaking from loop")
@@ -197,7 +174,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		//		}
 		//	}
 		//case <-ticker.C:
-		//	go printAliveCells(p, world)
+		//	go countAliveCells(p, world)
 		//default:
 		//}
 	}
