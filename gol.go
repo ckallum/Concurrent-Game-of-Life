@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
@@ -58,12 +59,36 @@ func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, ex
 	}
 }
 
+func getWorld(p golParams, world [][]byte, out []chan byte, threadHeight int, extra int)[][]byte{
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	if !powerOfTwo(p) {
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
+			}
+		}
+	}
+	return world
+}
+
 func buildWorld(p golParams, haloHeight int)[][]byte{
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
 	}
 	return workerWorld
+}
+
+func notifyWorkers(p golParams, in []chan byte, key byte){
+	for i:= 0; i< p.threads; i++{
+		in[i] <- key
+	}
 }
 
 func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
@@ -74,7 +99,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 		}
 	}
 	temp := buildWorld(p, haloHeight)
-
+loop:
 	for{
 		select {
 		case val := <- in:
@@ -111,10 +136,30 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 				workerWorld = temp
 				temp = tmp
 			}
+
+
 			if val == 0xAB{
 				for y := 1; y < haloHeight-1; y++ {
 					for x := 0; x < p.imageWidth; x++ {
 						out <- workerWorld[y][x]
+					}
+				}
+			}
+			if val == 0xAC{
+				for y := 1; y < haloHeight-1; y++ {
+					for x := 0; x < p.imageWidth; x++ {
+						out <- workerWorld[y][x]
+					}
+				}
+				break loop
+			}
+			if val == 0xAD{
+				loop1: for {
+					select {
+					case val := <- in:
+						if val == 0xAD{
+							break loop1
+						}
 					}
 				}
 			}
@@ -146,69 +191,61 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
-	//ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 
 	giveWorld(p, world, in, threadHeight, extra)
 
-//loop1:
+loop1:
 	for turn := 0; turn < p.turns; turn++ {
 		for i:= 0; i< p.threads; i++{
 			in[i] <- 0xAA
 		}
 
-		//select {
-		//case keyValue := <-d.key:
-		//	char := string(keyValue)
-		//	if char == "s" {
-		//		fmt.Println("S Pressed")
-		//		go sendWorld(p, world, d, turn)
-		//	}
-		//	if char == "q" {
-		//		fmt.Println("Q pressed, breaking from loop")
-		//		break loop1
-		//	}
-		//	if char == "p" {
-		//		fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-		//	loop:
-		//		for {
-		//			select {
-		//			case keyValue := <-d.key:
-		//				char := string(keyValue)
-		//				if char == "p" {
-		//					fmt.Println("Continuing")
-		//					break loop
-		//				}
-		//			default:
-		//			}
-		//		}
-		//	}
-		//case <-ticker.C:
-		//	go countAliveCells(p, world)
-		//default:
-		//}
-	}
-	for i:= 0; i< p.threads; i++{
-		in[i] <- 0xAB
-	}
-	for i := 0; i < p.threads; i++ {
-		for y := 0; y < threadHeight; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[y+(i*(threadHeight))][x] = <-out[i]
+		select {
+		case keyValue := <-d.key:
+			char := string(keyValue)
+			if char == "s" {
+				fmt.Println("S Pressed")
+				notifyWorkers(p, in, 0xAB)
+				world = getWorld(p, world, out, threadHeight, extra)
+				sendWorld(p, world, d, turn)
 			}
+			if char == "q" {
+				fmt.Println("Q pressed, breaking from loop")
+				notifyWorkers(p, in, 0xAC)
+				break loop1
+			}
+			if char == "p" {
+				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				notifyWorkers(p, in, 0xAD)
+			loop:
+				for {
+					select {
+					case keyValue := <-d.key:
+						char := string(keyValue)
+						if char == "p" {
+							fmt.Println("Continuing")
+							notifyWorkers(p, in, 0xAD)
+							break loop
+						}
+					default:
+					}
+				}
+			}
+		case <-ticker.C:
+			notifyWorkers(p, in, 0xAB)
+			world = getWorld(p, world, out, threadHeight, extra)
+			countAliveCells(p, world)
+		default:
 		}
 	}
-	if !powerOfTwo(p) {
-		for e := 0; e < extra; e++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-			}
-		}
-	}
+	notifyWorkers(p, in, 0xAB)
+	world = getWorld(p, world, out, threadHeight, extra)
 	sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
-	// Go through the world and append the cells that are still alive.
+	// Go through the world and append the cellsbreak loop that are still alive.
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			if world[y][x] != 0 {
