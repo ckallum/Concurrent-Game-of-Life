@@ -11,11 +11,11 @@ func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
 
-	//for y := range world {
-		//for x := range world[y] {
-			d.io.outputVal <- world
-		//}
-	//}
+	for y := range world {
+		for x := range world[y] {
+			d.io.outputVal <- world[y][x]
+		}
+	}
 }
 
 func printAliveCells(p golParams, world [][]byte) {
@@ -64,7 +64,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 					}
 				}
 				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-					out <- 1
+					out <- 0xFF
 				} else {
 					out <- 0
 				}

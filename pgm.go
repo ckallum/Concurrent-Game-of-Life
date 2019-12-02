@@ -43,8 +43,7 @@ func writePgmImage(p golParams, i ioChans) {
 		for x := 0; x < p.imageWidth; x++ {
 			world[y][x] = <-i.distributor.outputVal
 			if world[y][x] == 1{
-				//fmt.Println("Receiving")
-
+				fmt.Println("Receiving")
 			}
 		}
 	}
