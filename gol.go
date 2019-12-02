@@ -22,7 +22,7 @@ func printAliveCells(p golParams, world [][]byte) {
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
-			if world[y][x] == 1 {
+			if world[y][x] == 0xFF {
 				alive ++
 			}
 		}
