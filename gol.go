@@ -11,11 +11,11 @@ func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
 
-	for y := range world {
-		for x := range world[y] {
-			d.io.outputVal <- world[y][x]
-		}
-	}
+	//for y := range world {
+		//for x := range world[y] {
+			d.io.outputVal <- world
+		//}
+	//}
 }
 
 func printAliveCells(p golParams, world [][]byte) {
@@ -161,7 +161,6 @@ loop1:
 			if !powerOfTwo(p) {
 				for e := 0; e < extra; e++ {
 					for x := 0; x < p.imageWidth; x++ {
-						//fmt.Println(strconv.Itoa(e+(p.threads*(threadHeight))))
 						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 					}
 				}
