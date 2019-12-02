@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
@@ -41,7 +40,7 @@ func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	}
 }
 
-func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte) {
+func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending[]chan byte, receiving[2]chan byte, done chan int) {
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
 		workerWorld[i] = make([]byte, p.imageWidth)
@@ -51,31 +50,44 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 			workerWorld[y][x] = <-in
 		}
 	}
-	for {
-		for x := 0; x < p.imageWidth; x++ {
-			sending[0] <- workerWorld[1][x]
-			sending[1] <- workerWorld[haloHeight-2][x]
-		}
-		for x := 0; x < p.imageWidth; x++ {
-			workerWorld[0][x] = <-receiving[0]
-			workerWorld[haloHeight-1][x] = <- receiving[1]
-		}
-
-		for y := 1; y < haloHeight-1; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				count := 0
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
-							count++
+	loop:for {
+		select {
+		case val := <- in:
+			if val == 0xAA{
+				for x := 0; x < p.imageWidth; x++ {
+					sending[0] <- workerWorld[1][x]
+					sending[1] <- workerWorld[haloHeight-2][x]
+				}
+				for x := 0; x < p.imageWidth; x++ {
+					workerWorld[0][x] = <-receiving[0]
+					workerWorld[haloHeight-1][x] = <- receiving[1]
+				}
+				for y := 1; y < haloHeight-1; y++ {
+					for x := 0; x < p.imageWidth; x++ {
+						count := 0
+						for i := -1; i <= 1; i++ {
+							for j := -1; j <= 1; j++ {
+								if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
+									count++
+								}
+							}
+						}
+						if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
+							workerWorld[y][x] = 0xFF
+						} else {
+							workerWorld[y][x] = 0
 						}
 					}
 				}
-				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-					out <- 0xFF
-				} else {
-					out <- 0
+				done<-1
+			}
+			if val == 0xAB{
+				for y := 1; y < haloHeight-1; y++ {
+					for x := 0; x < p.imageWidth; x++ {
+						out <- workerWorld[y][x]
+					}
 				}
+				break loop
 			}
 		}
 	}
@@ -100,23 +112,6 @@ func giveWorld(p golParams, world [][]byte, in []chan byte, threadHeight int, ex
 	}
 }
 
-func receiveWorld(p golParams, world [][]byte, out []chan byte, threadHeight int, extra int)[][]byte{
-	for i := 0; i < p.threads; i++ {
-		for y := 0; y < threadHeight; y++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[y+(i*(threadHeight))][x] = <-out[i]
-			}
-		}
-	}
-	if !powerOfTwo(p) {
-		for e := 0; e < extra; e++ {
-			for x := 0; x < p.imageWidth; x++ {
-				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-			}
-		}
-	}
-	return world
-}
 /**
 
 Stage 4 Idea:
@@ -137,7 +132,7 @@ receive world from all threads.
 **/
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
+func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte, done chan int) {
 
 	// Create the 2D slice to store the world.
 	world := make([][]byte, p.imageHeight)
@@ -160,48 +155,69 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
-	fmt.Println(strconv.Itoa(extra))
-	ticker := time.NewTicker(2 * time.Second)
+	//ticker := time.NewTicker(2 * time.Second)
 
 	giveWorld(p, world, in, threadHeight, extra)
 
-loop1:
+//loop1:
 	for turn := 0; turn < p.turns; turn++ {
-		select {
-		case keyValue := <-d.key:
-			char := string(keyValue)
-			if char == "s" {
-				fmt.Println("S Pressed")
-				go sendWorld(p, world, d, turn)
-				printAliveCells(p, world)
+		for i:= 0; i< p.threads; i++{
+			in[i] <- 0xAA
+		}
+		for i:= 0; i< p.threads; i++{
+			<-done
+		}
+		//select {
+		//case keyValue := <-d.key:
+		//	char := string(keyValue)
+		//	if char == "s" {
+		//		fmt.Println("S Pressed")
+		//		go sendWorld(p, world, d, turn)
+		//		printAliveCells(p, world)
+		//	}
+		//	if char == "q" {
+		//		fmt.Println("Q pressed, breaking from loop")
+		//		break loop1
+		//	}
+		//	if char == "p" {
+		//		fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+		//		//ticker.Stop()
+		//	loop:
+		//		for {
+		//			select {
+		//			case keyValue := <-d.key:
+		//				char := string(keyValue)
+		//				if char == "p" {
+		//					fmt.Println("Continuing")
+		//					//ticker = time.NewTicker(2 * time.Second)
+		//					break loop
+		//				}
+		//			default:
+		//			}
+		//		}
+		//	}
+		//case <-ticker.C:
+		//	go printAliveCells(p, world)
+		//default:
+		//}
+	}
+	for i:= 0; i< p.threads; i++{
+		in[i] <- 0xAB
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
 			}
-			if char == "q" {
-				fmt.Println("Q pressed, breaking from loop")
-				break loop1
-			}
-			if char == "p" {
-				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-				//ticker.Stop()
-			loop:
-				for {
-					select {
-					case keyValue := <-d.key:
-						char := string(keyValue)
-						if char == "p" {
-							fmt.Println("Continuing")
-							//ticker = time.NewTicker(2 * time.Second)
-							break loop
-						}
-					default:
-					}
-				}
-			}
-		case <-ticker.C:
-			go printAliveCells(p, world)
-		default:
 		}
 	}
-	world = receiveWorld(p, world, out, threadHeight, extra)
+	if !powerOfTwo(p) {
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
+			}
+		}
+	}
 	sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.

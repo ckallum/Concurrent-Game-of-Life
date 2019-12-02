@@ -102,6 +102,7 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	in := make([]chan byte, p.threads)
 	out := make([] chan byte, p.threads)
 	haloChannels:= make([][]chan byte, p.threads)
+	doneChannel:= make(chan int, p.threads)
 	for i := 0; i<p.threads; i++{
 		haloChannels[i] = make([]chan byte, 2)
 		for j:= 0; j<2 ;j++{
@@ -113,22 +114,22 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 
 	if powerOfTwo(p){
 		for i := 0; i< p.threads; i++{
-			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[i+1 % p.threads][0]}
-			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving)
+			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[(i+1) % p.threads][0]}
+			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving, doneChannel)
 		}
 	}else{
 		extra := p.imageHeight % p.threads
 		for i := 0; i< p.threads-1; i++{
-			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[i+1 % p.threads][0]}
-			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving)
+			receiving := [2]chan byte{haloChannels[(i-1+p.threads) % p.threads][1], haloChannels[(i+1) % p.threads][0]}
+			go worker(threadHeight+2, in[i], out[i], p, haloChannels[i], receiving, doneChannel)
 		}
 		receiving := [2]chan byte{haloChannels[p.threads-2][1], haloChannels[0][0]}
-		go worker(threadHeight+2+extra, in[p.threads-1], out[p.threads-1], p, haloChannels[p.threads-1], receiving)
+		go worker(threadHeight+2+extra, in[p.threads-1], out[p.threads-1], p, haloChannels[p.threads-1], receiving, doneChannel)
 	}
 
 	aliveCells := make(chan []cell)
 
-	go distributor(p, dChans, aliveCells, in, out)
+	go distributor(p, dChans, aliveCells, in, out, doneChannel)
 	// Reads in board from file, then writes image to disk.
 	go pgmIo(p, ioChans)
 
