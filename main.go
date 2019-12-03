@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"time"
 )
 
 // golParams provides the details of how to run the Game of Life and which image to load.
@@ -96,6 +97,8 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	outputVal := make(chan uint8)
 	dChans.io.outputVal = outputVal
 	ioChans.distributor.outputVal = outputVal
+	ticker := time.NewTicker(2 * time.Second)
+
 
 	//creating worker channels and running them concurrently -> keeping them PERSISTENT
 	threadHeight := p.imageHeight/p.threads
@@ -129,7 +132,7 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 
 	aliveCells := make(chan []cell)
 
-	go distributor(p, dChans, aliveCells, in, out)
+	go distributor(p, dChans, aliveCells, in, out, ticker.C)
 	go pgmIo(p, ioChans)
 
 	alive := <-aliveCells

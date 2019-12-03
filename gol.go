@@ -7,9 +7,11 @@ import (
 	"time"
 )
 
-func sendWorldtoPGM(p golParams, world [][]byte, d distributorChans, turn int) {
+func sendWorldtoPGM(p golParams, d distributorChans, turn int, out []chan byte, threadHeight int, extra int) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
+	world := getWorldFromWorkers(p, out, threadHeight, extra)
+
 
 	for y := range world {
 		for x := range world[y] {
@@ -45,9 +47,9 @@ func buildWorld(p golParams, haloHeight int) [][]byte {
 	return workerWorld
 }
 
-func countAliveCells(p golParams, world [][]byte, in []chan byte, out []chan byte, threadHeight int, extra int) {
+func countAliveCells(p golParams, in []chan byte, out []chan byte, threadHeight int, extra int) {
 	notifyWorkers(p, in, 0xAB)
-	world = getWorldFromWorkers(p, world, out, threadHeight, extra)
+	world := getWorldFromWorkers(p,out, threadHeight, extra)
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
@@ -96,7 +98,8 @@ func sendWorldFromWorkers(p golParams, world [][]byte, out chan<- byte, height i
 	}
 }
 
-func getWorldFromWorkers(p golParams, world [][]byte, out []chan byte, threadHeight int, extra int) [][]byte {
+func getWorldFromWorkers(p golParams, out []chan byte, threadHeight int, extra int) [][]byte {
+	world := buildWorld(p, p.imageHeight)
 	for i := 0; i < p.threads; i++ {
 		for y := 0; y < threadHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
@@ -132,7 +135,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 	for {
 		select {
 		case val := <-in:
-			if val == 0xAA {
+			if val == 1 {
 				for x := 0; x < p.imageWidth; x++ {
 					sending[0] <- workerWorld[1][x]
 					sending[1] <- workerWorld[haloHeight-2][x]
@@ -175,7 +178,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 			}
 			if val == 0xAD {
 				paused:=true
-				for paused{
+				for paused == true{
 					val := <-in
 					if val == 0xAD {
 						paused = false
@@ -187,14 +190,13 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
+func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte, ticker <-chan time.Time) {
 
 	// Create the 2D slice to store the world.
 	world := getWorldfromPGM(p, d)
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
 	giveWorldToWorkers(p, world, in, threadHeight, extra)
-	ticker := time.NewTicker(2 * time.Second)
 	running:= true
 
 	for turn := 0; turn < p.turns && running; turn++ {
@@ -204,8 +206,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			if char == "s" {
 				fmt.Println("S Pressed")
 				notifyWorkers(p, in, 0xAB)
-				world = getWorldFromWorkers(p, world, out, threadHeight, extra)
-				go sendWorldtoPGM(p, world, d, turn)
+				go sendWorldtoPGM(p, d, turn, out, threadHeight, extra)
 			}
 			if char == "q" {
 				fmt.Println("Q pressed, breaking from program")
@@ -213,27 +214,28 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 				running = false
 			}
 			if char == "p" {
-				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				fmt.Println("P pressed, pausing at turn: " + strconv.Itoa(turn))
 				notifyWorkers(p, in, 0xAD)
-				for {
-					keyValue := <-d.key
-					char := string(keyValue)
+				paused:=true
+				for paused == true{
+					char := string(<-d.key)
 					if char == "p" {
 						fmt.Println("Continuing")
 						notifyWorkers(p, in, 0xAD)
+						paused =false
 					}
 				}
 			}
-		case <-ticker.C:
-			go countAliveCells(p, world, in, out, threadHeight, extra)
+		case <-ticker:
+			countAliveCells(p, in, out, threadHeight, extra)
 		default:
-			notifyWorkers(p, in, 0xAA)
+			notifyWorkers(p, in, 1)
 		}
 	}
 
 	notifyWorkers(p, in, 0xAB)
-	world = getWorldFromWorkers(p, world, out, threadHeight, extra)
-	go sendWorldtoPGM(p, world, d, p.turns)
+	world = getWorldFromWorkers(p, out, threadHeight, extra)
+	go sendWorldtoPGM(p, d, p.turns, out, threadHeight, extra)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
