@@ -215,9 +215,8 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			char := string(keyValue)
 			if char == "s" {
 				fmt.Println("S Pressed")
-				notifyWorkers(p, keyChannels, 2)
+				go notifyWorkers(p, keyChannels, 2)
 				w:= getWorldFromWorkers(p, out, threadHeight, extra)
-
 				go sendWorldToPGM(p, w, d, turn)
 			}
 			if char == "q" {
@@ -226,14 +225,14 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			}
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn: " + strconv.Itoa(turn))
-				notifyWorkers(p, keyChannels, 4)
+				go notifyWorkers(p, keyChannels, 4)
 				paused:=true
 				for paused == true{
 					char := string(<-d.key)
 					if char == "p" {
 						fmt.Println("Continuing")
-						notifyWorkers(p, keyChannels, 4)
 						paused =false
+						notifyWorkers(p, keyChannels, 4)
 					}
 				}
 			}
@@ -244,7 +243,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 
-	notifyWorkers(p, keyChannels, 3)
+	go notifyWorkers(p, keyChannels, 3)
 	world = getWorldFromWorkers(p, out, threadHeight, extra)
 	go sendWorldToPGM(p,world, d, p.turns)
 
