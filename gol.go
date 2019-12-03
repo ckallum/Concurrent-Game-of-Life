@@ -206,25 +206,25 @@ loop1:
 				char := string(keyValue)
 				if char == "s" {
 					fmt.Println("S Pressed")
-					go notifyWorkers(p, in, 0xAB)
+					notifyWorkers(p, in, 0xAB)
 					world = getWorldFromWorkers(p, world, out, threadHeight, extra)
 					go sendWorldtoPGM(p, world, d, turn)
 					break loop2
 				}
 				if char == "q" {
 					fmt.Println("Q pressed, breaking from program")
-					go notifyWorkers(p, in, 0xAC)
+					notifyWorkers(p, in, 0xAC)
 					break loop1
 				}
 				if char == "p" {
 					fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-					go notifyWorkers(p, in, 0xAD)
+					notifyWorkers(p, in, 0xAD)
 					for {
 						keyValue := <-d.key
 						char := string(keyValue)
 						if char == "p" {
 							fmt.Println("Continuing")
-							go notifyWorkers(p, in, 0xAD)
+							notifyWorkers(p, in, 0xAD)
 							break loop2
 						}
 					}
@@ -239,7 +239,7 @@ loop1:
 		}
 
 	}
-	go notifyWorkers(p, in, 0xAB)
+	notifyWorkers(p, in, 0xAB)
 	world = getWorldFromWorkers(p, world, out, threadHeight, extra)
 	go sendWorldtoPGM(p, world, d, p.turns)
 
