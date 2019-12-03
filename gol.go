@@ -46,7 +46,7 @@ func buildWorld(p golParams, haloHeight int) [][]byte {
 }
 
 func countAliveCells(p golParams, world [][]byte, in []chan byte, out []chan byte, threadHeight int, extra int) {
-	go notifyWorkers(p, in, 0xAB)
+	notifyWorkers(p, in, 0xAB)
 	world = getWorldFromWorkers(p, world, out, threadHeight, extra)
 	alive := 0
 	for y := 0; y < p.imageHeight; y++ {
@@ -128,7 +128,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 		}
 	}
 	temp := buildWorld(p, haloHeight)
-loop:
+//loop:
 	for {
 		select {
 		case val := <-in:
@@ -171,14 +171,14 @@ loop:
 			}
 			if val == 0xAC {
 				sendWorldFromWorkers(p, workerWorld, out, haloHeight)
-				break loop
+				return
 			}
 			if val == 0xAD {
-			loop1:
-				for {
+				paused:=true
+				for paused{
 					val := <-in
 					if val == 0xAD {
-						break loop1
+						paused = false
 					}
 				}
 			}
@@ -195,50 +195,42 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	extra := p.imageHeight % p.threads
 	giveWorldToWorkers(p, world, in, threadHeight, extra)
 	ticker := time.NewTicker(2 * time.Second)
+	running:= true
 
-loop1:
-	for turn := 0; turn < p.turns; turn++ {
-		notifyWorkers(p, in, 0xAA)
-	loop2:
-		for {
-			select {
-			case keyValue := <-d.key:
-				char := string(keyValue)
-				if char == "s" {
-					fmt.Println("S Pressed")
-					notifyWorkers(p, in, 0xAB)
-					world = getWorldFromWorkers(p, world, out, threadHeight, extra)
-					go sendWorldtoPGM(p, world, d, turn)
-					break loop2
-				}
-				if char == "q" {
-					fmt.Println("Q pressed, breaking from program")
-					notifyWorkers(p, in, 0xAC)
-					break loop1
-				}
-				if char == "p" {
-					fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
-					notifyWorkers(p, in, 0xAD)
-					for {
-						keyValue := <-d.key
-						char := string(keyValue)
-						if char == "p" {
-							fmt.Println("Continuing")
-							notifyWorkers(p, in, 0xAD)
-							break loop2
-						}
+	for turn := 0; turn < p.turns && running; turn++ {
+		select {
+		case keyValue := <-d.key:
+			char := string(keyValue)
+			if char == "s" {
+				fmt.Println("S Pressed")
+				notifyWorkers(p, in, 0xAB)
+				world = getWorldFromWorkers(p, world, out, threadHeight, extra)
+				go sendWorldtoPGM(p, world, d, turn)
+			}
+			if char == "q" {
+				fmt.Println("Q pressed, breaking from program")
+				notifyWorkers(p, in, 0xAC)
+				running = false
+			}
+			if char == "p" {
+				fmt.Println("P pressed, pausing at turn" + strconv.Itoa(turn))
+				notifyWorkers(p, in, 0xAD)
+				for {
+					keyValue := <-d.key
+					char := string(keyValue)
+					if char == "p" {
+						fmt.Println("Continuing")
+						notifyWorkers(p, in, 0xAD)
 					}
 				}
-			case <-ticker.C:
-				go countAliveCells(p, world, in, out, threadHeight, extra)
-				break loop2
-			default:
-				break loop2
 			}
-
+		case <-ticker.C:
+			go countAliveCells(p, world, in, out, threadHeight, extra)
+		default:
+			notifyWorkers(p, in, 0xAA)
 		}
-
 	}
+
 	notifyWorkers(p, in, 0xAB)
 	world = getWorldFromWorkers(p, world, out, threadHeight, extra)
 	go sendWorldtoPGM(p, world, d, p.turns)
