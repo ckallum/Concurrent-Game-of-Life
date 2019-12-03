@@ -97,7 +97,7 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	dChans.io.outputVal = outputVal
 	ioChans.distributor.outputVal = outputVal
 
-	//creating worker channels and running them concurrently
+	//creating worker channels and running them concurrently -> keeping them PERSISTENT
 	threadHeight := p.imageHeight/p.threads
 	in := make([]chan byte, p.threads)
 	out := make([] chan byte, p.threads)
@@ -161,7 +161,7 @@ func main() {
 
 	flag.Parse()
 
-	params.turns = 1000
+	params.turns = 10000
 
 	startControlServer(params)
 	keyChan := make(chan rune)
