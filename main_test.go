@@ -298,14 +298,14 @@ func Test(t *testing.T) {
 		}},
 
 		//Special test to be used to generate traces - not a real test
-		//{"trace", args{
-		//	p: golParams{
-		//		turns:       10,
-		//		threads:     4,
-		//		imageWidth:  64,
-		//		imageHeight: 64,
-		//	},
-		//}},
+		{"trace", args{
+			p: golParams{
+				turns:       10,
+				threads:     4,
+				imageWidth:  64,
+				imageHeight: 64,
+			},
+		}},
 
 	}
 	for _, test := range tests {

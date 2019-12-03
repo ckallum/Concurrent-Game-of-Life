@@ -164,7 +164,7 @@ func main() {
 
 	flag.Parse()
 
-	params.turns = 10000
+	params.turns = 100
 
 	startControlServer(params)
 	keyChan := make(chan rune)
