@@ -47,6 +47,13 @@ func isAlive(imageWidth, x, y int, world [][]byte) bool {
 	}
 }
 
+func modPos(d, m int) int {
+	if d >= 0 {
+		return d % m
+	}
+	return d + m
+}
+
 func sendWorldToPGM(p golParams, world [][] byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
@@ -155,18 +162,41 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 				for y := 1; y < haloHeight-1; y++ {
 					for x := 0; x < p.imageWidth; x++ {
 						count := 0
-						for i := -1; i <= 1; i++ {
-							for j := -1; j <= 1; j++ {
-								if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
-									count++
-								}
+						count = int(workerWorld[modPos(y-1, haloHeight)][modPos(x-1, p.imageWidth)]) +
+								int(workerWorld[modPos(y-1, haloHeight)][modPos(x, p.imageWidth)]) +
+								int(workerWorld[modPos(y-1, haloHeight)][modPos(x+1, p.imageWidth)]) +
+								int(workerWorld[modPos(y, haloHeight)][modPos(x-1, p.imageWidth)]) +
+								int(workerWorld[modPos(y, haloHeight)][modPos(x+1, p.imageWidth)]) +
+								int(workerWorld[modPos(y+1, haloHeight)][modPos(x-1, p.imageWidth)]) +
+								int(workerWorld[modPos(y+1, haloHeight)][modPos(x, p.imageWidth)]) +
+								int(workerWorld[modPos(y+1, haloHeight)][modPos(x+1, p.imageWidth)])
+						count /= 255
+						if workerWorld[y][x] != 0 {
+							if count < 2 || count > 3 {
+								temp[y][x] = workerWorld[y][x] ^ 0xFF
+							} else {
+								temp[y][x] = workerWorld[y][x]
+							}
+						} else{
+							if count == 3 {
+								temp[y][x] = workerWorld[y][x] ^ 0xFF
+							} else {
+								temp[y][x] = workerWorld[y][x]
 							}
 						}
-						if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-							temp[y][x] = 0xFF
-						} else {
-							temp[y][x] = 0
-						}
+						//count := 0
+						//for i := -1; i <= 1; i++ {
+						//	for j := -1; j <= 1; j++ {
+						//		if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
+						//			count++
+						//		}
+						//	}
+						//}
+						//if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
+						//	temp[y][x] = 0xFF
+						//} else {
+						//	temp[y][x] = 0
+						//}
 					}
 				}
 
