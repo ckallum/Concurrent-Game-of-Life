@@ -1,0 +1,3 @@
+[submodule "GOL-Stage5"]
+	path = GOL-Stage5
+	url = git@github.com:ckallum/GOL-Stage5.git
