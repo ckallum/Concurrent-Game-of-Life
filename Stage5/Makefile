@@ -70,9 +70,9 @@ perf:
 
 
 time:
-    time go test -bench /128x128x2
-	time go test -bench /128x128x4
-	time go test -bench /128x128x8
+#     time go test -bench /128x128x2
+# 	time go test -bench /128x128x4
+# 	time go test -bench /128x128x8
 	time go test -bench /512x512x2
 	time go test -bench /512x512x4
 	time go test -bench /512x512x8

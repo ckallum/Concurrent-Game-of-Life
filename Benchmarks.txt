@@ -1,6 +1,9 @@
 Bench marks on Lab Computer IT076816
+Lower the percentage the better.
+------------------------------------------------------------------------------------
 
 Stage 1a:
+
 Make Bench Results:
 
 Benchmark/16x16x2-12         	      49	  23862276 ns/op
@@ -21,6 +24,84 @@ Benchmark/512x512x8-12       	       1	19493402957 ns/op
 ok  	uk.ac.bris.cs/gameoflife	88.778s
 
 Make Compare Results:
+TIME RESULTS
+Benchmark       Baseline result   Your result       % Difference
+                (ns/1000 turns)   (ns/1000 turns)   The bigger the better
+128x128x2-12     748078910         1274263009        58 %
+128x128x4-12     531828566         1240350769        42 %
+128x128x8-12     362153836         1222014920        29 %
+
+CPU USAGE RESULTS
+Benchmark       Baseline CPU usage   Your CPU usage   % Difference
+                                                      The smaller the better
+128x128x2-12     184 %                100 %            184 %
+128x128x4-12     299 %                100 %            299 %
+128x128x8-12     425 %                100 %            425 %
+
+------------------------------------------------------------------------------------
+
+Stage 1b:
+
+Make Bench:
+-- Times out/takes ages
+
+Make Compare Results:
+
+------------------------------------------------------------------------------------
+
+Stage 2:
+
+Make Compare Results:
+
+------------------------------------------------------------------------------------
+
+Stage 3:
+
+Make Compare Results:
+
+
+------------------------------------------------------------------------------------
+
+Stage 4:
+
+Make Compare Results:
+TIME RESULTS
+Benchmark       Baseline result   Your result       % Difference
+                (ns/1000 turns)   (ns/1000 turns)   The bigger the better
+128x128x2-12     738296903         1355778289        54 %
+128x128x4-12     536594525         1055680889        50 %
+128x128x8-12     365545447         927528010         39 %
+
+CPU USAGE RESULTS
+Benchmark       Baseline CPU usage   Your CPU usage   % Difference
+                                                      The smaller the better
+128x128x2-12     184 %                106 %            173 %
+128x128x4-12     299 %                194 %            154 %
+128x128x8-12     424 %                322 %            131 %
+
+
+------------------------------------------------------------------------------------
+
+Stage 5:
+Make Compare Results:
+TIME RESULTS
+Benchmark       Baseline result   Your result       % Difference
+                (ns/1000 turns)   (ns/1000 turns)   The bigger the better
+128x128x2-12     737808276         656649044         112 %
+128x128x4-12     531023533         514773644         103 %
+128x128x8-12     361779290         422864078         85 %
+
+CPU USAGE RESULTS
+Benchmark       Baseline CPU usage   Your CPU usage   % Difference
+                                                      The smaller the better
+128x128x2-12     185 %                187 %            98 %
+128x128x4-12     298 %                292 %            102 %
+128x128x8-12     423 %                462 %            91 %
+
+
+
+
+
 
 
 
