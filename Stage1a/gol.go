@@ -54,14 +54,30 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 	for turns := 0; turns < p.turns; turns++ {
 		for y := 0; y < p.imageHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
-				count := 0
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						if (j != 0 || i != 0) && isAlive(p, x+i, y+j, temp){
-							count++
-						}
-					}
-				}
+				xRight, xLeft := x+1, x-1
+                			yUp, yDown:= y-1, y+1
+                            						if xRight >= p.imageWidth {
+                            							xRight %= p.imageWidth
+                            						}
+                            						if xLeft < 0 {
+                            							xLeft += p.imageWidth
+                            						}
+                            						if yDown >= p.imageHeight {
+                                                                							yDown %= p.imageHeight
+                                                                						}
+                                                                						if yUp< 0 {
+                                                                							yUp+= p.imageHeight
+                                                                						}
+                            						count := 0
+                            						count = int(temp[yUp][xLeft]) +
+                            								int(temp[yUp][x]) +
+                            								int(temp[yUp][xRight]) +
+                            								int(temp[y][xLeft]) +
+                            								int(temp[y][xRight]) +
+                            								int(temp[yDown][xLeft]) +
+                            								int(temp[yDown][x]) +
+                            								int(temp[yDown][xRight])
+                            						count /= 255
 				if count == 3 || ( temp[y][x] == 0xFF && count == 2){
 					world[y][x] = 0xFF
 				}else{

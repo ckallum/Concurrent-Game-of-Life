@@ -27,18 +27,6 @@ func countAliveCells(p golParams, world [][]byte) {
 	fmt.Println(alive)
 }
 
-func isAlive(p golParams, x, y int, world [][]byte) bool {
-	x += p.imageWidth
-	x %= p.imageWidth
-	y += p.imageHeight
-	y %= p.imageHeight
-	if world[y][x] != 0xFF {
-		return false
-	} else {
-		return true
-	}
-}
-
 func sendWorldToPGM(p golParams, world [][] byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
@@ -77,14 +65,30 @@ func worker(p golParams, world [][]byte, tempWorld [][]byte, threadNum int, thre
 	}
 	for y := threadNum * threadHeight; y < yBound; y++ {
 		for x := 0; x < p.imageWidth; x++ {
-			count := 0
-			for i := -1; i <= 1; i++ {
-				for j := -1; j <= 1; j++ {
-					if (j != 0 || i != 0) && isAlive(p, x+i, y+j, world) {
-						count++
-					}
-				}
-			}
+			xRight, xLeft := x+1, x-1
+			yUp, yDown:= y-1, y+1
+            						if xRight >= p.imageWidth {
+            							xRight %= p.imageWidth
+            						}
+            						if xLeft < 0 {
+            							xLeft += p.imageWidth
+            						}
+            						if yDown >= p.imageHeight {
+                                                							yDown %= p.imageHeight
+                                                						}
+                                                						if yUp< 0 {
+                                                							yUp+= p.imageHeight
+                                                						}
+            						count := 0
+            						count = int(world[yUp][xLeft]) +
+            								int(world[yUp][x]) +
+            								int(world[yUp][xRight]) +
+            								int(world[y][xLeft]) +
+            								int(world[y][xRight]) +
+            								int(world[yDown][xLeft]) +
+            								int(world[yDown][x]) +
+            								int(world[yDown][xRight])
+            						count /= 255
 			if count == 3 || (world[y][x] == 0xFF && count == 2) {
 				tempWorld[y][x] = 0xFF
 			} else {
