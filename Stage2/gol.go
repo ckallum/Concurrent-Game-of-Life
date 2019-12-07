@@ -63,8 +63,8 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 						}
 					}
 				}
-				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-					out <- 1
+				if count == 3 || (workerWorld[y][x] == 0xFF && count == 2) {
+					out <- 0xFF
 				} else {
 					out <- 0
 				}

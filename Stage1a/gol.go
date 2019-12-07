@@ -62,8 +62,8 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 						}
 					}
 				}
-				if count == 3 || (isAlive(p, x, y, temp) && count == 2){
-					world[y][x] = 1
+				if count == 3 || ( temp[y][x] == 0xFF && count == 2){
+					world[y][x] = 0xFF
 				}else{
 					world[y][x] = 0
 				}

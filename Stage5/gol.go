@@ -85,7 +85,7 @@ func worker(p golParams, world [][]byte, tempWorld [][]byte, threadNum int, thre
 					}
 				}
 			}
-			if count == 3 || (isAlive(p, x, y, world) && count == 2) {
+			if count == 3 || (world[y][x] == 0xFF && count == 2) {
 				tempWorld[y][x] = 0xFF
 			} else {
 				tempWorld[y][x] = 0
