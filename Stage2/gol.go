@@ -1,19 +1,10 @@
-package Stage2
+package main
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-)
-
-package main
-
-import (
-"fmt"
-"strconv"
-"strings"
-"time"
 )
 
 func sendWorld(p golParams, world [][]byte, d distributorChans) {

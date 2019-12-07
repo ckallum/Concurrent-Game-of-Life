@@ -96,17 +96,8 @@ func gameOfLife(p golParams, keyChan <-chan rune) []cell {
 	aliveCells := make(chan []cell)
 
 	//creating worker channels and running them concurrently
-	threadHeight := p.imageHeight/p.threads
-	in := make([]chan byte, p.threads)
-	out := make([] chan byte, p.threads)
-	for i := 0; i<p.threads; i++{
-		in[i] = make(chan byte, p.imageHeight)
-		out[i] = make(chan byte, p.imageHeight)
-	}
-	for i := 0; i< p.threads; i++{
-		go worker(threadHeight+2, in[i], out[i], p)
-	}
-	go distributor(p, dChans, aliveCells, in, out)
+
+	go distributor(p, dChans, aliveCells)
 	// Reads in board from file, then writes image to disk.
 	go pgmIo(p, ioChans)
 

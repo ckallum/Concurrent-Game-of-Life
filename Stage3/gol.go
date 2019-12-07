@@ -72,22 +72,6 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 		}
 	}
 }
-/**
-Stage 4 Idea:
-- https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
-- Each thread manages two halo's/row's
-	- each thread must receive from two other threads/halos each turn.
-		- Turn Start:
-			- each thread sends out its halo
-			- each thread receives from two other threads
-		- Turn End:
-			- each thread processes it's own world and changes it's halo
-- Have a 'DoneManager' that checks all threads are done working on the current turn->once buffer fills-> send signal to
-threads to process next turn.
-- Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
-receive world from all threads.
-- Making sure inputs work i.e. have multiple input channels that pause all workers
-**/
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
@@ -113,7 +97,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
-	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
 loop1:
@@ -183,7 +166,7 @@ loop1:
 			}
 		}
 	}
-	sendWorld(p, world, d, p.turns)
+	go sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
