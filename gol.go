@@ -37,22 +37,22 @@ func countAliveCells(p golParams, keyChannels []chan int, out []chan byte, threa
 	fmt.Println("Number of Alive Cells:", alive)
 }
 
-func isAlive(imageWidth, x, y int, world [][]byte) bool {
-	x += imageWidth
-	x %= imageWidth
-	if world[y][x] != 0xFF {
-		return false
-	} else {
-		return true
-	}
-}
-
-func modPos(d, m int) int {
-	if d >= 0 {
-		return d % m
-	}
-	return d + m
-}
+//func isAlive(imageWidth, x, y int, world [][]byte) bool {
+//	x += imageWidth
+//	x %= imageWidth
+//	if world[y][x] != 0xFF {
+//		return false
+//	} else {
+//		return true
+//	}
+//}
+//
+//func modPos(d, m int) int {
+//	if d >= 0 {
+//		return d % m
+//	}
+//	return d + m
+//}
 
 func sendWorldToPGM(p golParams, world [][] byte, d distributorChans, turn int) {
 	d.io.command <- ioOutput
@@ -161,15 +161,23 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 				//GOL Logic
 				for y := 1; y < haloHeight-1; y++ {
 					for x := 0; x < p.imageWidth; x++ {
+						xRight := x+1
+						if xRight >= p.imageWidth {
+							xRight %= p.imageWidth
+						}
+						xLeft := x-1
+						if xLeft < 0 {
+							xLeft += p.imageWidth
+						}
 						count := 0
-						count = int(workerWorld[modPos(y-1, haloHeight)][modPos(x-1, p.imageWidth)]) +
-								int(workerWorld[modPos(y-1, haloHeight)][modPos(x, p.imageWidth)]) +
-								int(workerWorld[modPos(y-1, haloHeight)][modPos(x+1, p.imageWidth)]) +
-								int(workerWorld[modPos(y, haloHeight)][modPos(x-1, p.imageWidth)]) +
-								int(workerWorld[modPos(y, haloHeight)][modPos(x+1, p.imageWidth)]) +
-								int(workerWorld[modPos(y+1, haloHeight)][modPos(x-1, p.imageWidth)]) +
-								int(workerWorld[modPos(y+1, haloHeight)][modPos(x, p.imageWidth)]) +
-								int(workerWorld[modPos(y+1, haloHeight)][modPos(x+1, p.imageWidth)])
+						count = int(workerWorld[y-1][xLeft]) +
+								int(workerWorld[y-1][x]) +
+								int(workerWorld[y-1][xRight]) +
+								int(workerWorld[y][xLeft]) +
+								int(workerWorld[y][xRight]) +
+								int(workerWorld[y+1][xLeft]) +
+								int(workerWorld[y+1][x]) +
+								int(workerWorld[y+1][xRight])
 						count /= 255
 						if workerWorld[y][x] != 0 {
 							if count < 2 || count > 3 {
