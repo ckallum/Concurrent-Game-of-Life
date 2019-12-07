@@ -63,7 +63,7 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p golParams, d distributorChans, alive chan []cell) {
+func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
 
 	// Create the 2D slice to store the world.
 	world := make([][]byte, p.imageHeight)
@@ -86,16 +86,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 		}
 	}
 	threadHeight := p.imageHeight / p.threads
-	in := make([]chan byte, p.threads)
-	out := make([] chan byte, p.threads)
-	// Calculate the new state of Game of Life after the given number of turns.
-	for i := 0; i < p.threads; i++ {
-		in[i] = make(chan byte, p.imageHeight)
-		out[i] = make(chan byte, p.imageHeight)
-	}
-	for i := 0; i < p.threads; i++ {
-		go worker(threadHeight+2, in[i], out[i], p)
-	}
+
 	for turns := 0; turns < p.turns; turns++ {
 		for i := 0; i < p.threads; i++ {
 			for y := 0; y < (threadHeight)+2; y++ {

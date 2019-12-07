@@ -1,0 +1,26 @@
+Bench marks on Lab Computer IT076816
+
+Stage 1a:
+Make Bench Results:
+
+Benchmark/16x16x2-12         	      49	  23862276 ns/op
+Benchmark/16x16x4-12         	      43	  23922055 ns/op
+Benchmark/16x16x8-12         	      50	  23538919 ns/op
+Benchmark/64x64x2-12         	       3	 334750455 ns/op
+Benchmark/64x64x4-12         	       3	 334222257 ns/op
+Benchmark/64x64x8-12         	       3	 336032069 ns/op
+Benchmark/128x128x2-12       	       1	1274622506 ns/op
+Benchmark/128x128x4-12       	       1	1261989129 ns/op
+Benchmark/128x128x8-12       	       1	1258956861 ns/op
+Benchmark/256x256x2-12       	       1	5099893987 ns/op
+Benchmark/256x256x4-12       	       1	5094217237 ns/op
+Benchmark/256x256x8-12       	       1	5068444607 ns/op
+Benchmark/512x512x2-12       	       1	20200646690 ns/op
+Benchmark/512x512x4-12       	       1	20520405033 ns/op
+Benchmark/512x512x8-12       	       1	19493402957 ns/op
+ok  	uk.ac.bris.cs/gameoflife	88.778s
+
+Make Compare Results:
+
+
+
