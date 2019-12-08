@@ -30,7 +30,7 @@ func printAliveCells(p golParams, world [][]byte) {
 	fmt.Println("Number of Alive Cells:", alive)
 }
 
-func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
+func combineWorkers(p golParams, out []chan byte, threadHeight int, isP bool, extra int) [][]byte {
 	world := make([][]byte, p.imageHeight)
 	for i := range world {
 		world[i] = make([]byte, p.imageWidth)
@@ -39,6 +39,13 @@ func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
 		for y := 0; y < threadHeight; y++ {
 			for x := 0; x < p.imageWidth; x++ {
 				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	if !isP{
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
 			}
 		}
 	}
@@ -170,14 +177,8 @@ loop1:
 			for i := 0; i < p.threads; i++ {
 				go sendToWorker(p, world, threadHeight, i, in[i], isP, extra)
 			}
-			world = combineWorkers(p, out, threadHeight)
-			if !isP{
-				for e := 0; e < extra; e++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-					}
-				}
-			}
+			world = combineWorkers(p, out, threadHeight, isP, extra)
+
 		}
 	}
 	go sendWorld(p, world, d, p.turns)
