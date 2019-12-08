@@ -30,6 +30,38 @@ func printAliveCells(p golParams, world [][]byte) {
 	fmt.Println("Number of Alive Cells:", alive)
 }
 
+func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
+	world := make([][]byte, p.imageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.imageWidth)
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	return world
+}
+
+func sendToWorker(p golParams, world [][]byte, threadHeight int, i int, in chan<- byte, isP bool, extra int) {
+	yBound := threadHeight + 2
+	if i == p.threads-1 && !isP {
+		yBound += extra
+	}
+	for y := 0; y < yBound; y++ {
+		proposedY := y + (i * threadHeight) - 1
+		if proposedY < 0 {
+			proposedY += p.imageHeight
+		}
+		proposedY %= p.imageHeight
+		for x := 0; x < p.imageWidth; x++ {
+			in <- world[proposedY][x]
+		}
+	}
+}
+
 func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 	workerWorld := make([][]byte, haloHeight)
 	for i := range workerWorld {
@@ -136,28 +168,9 @@ loop1:
 
 		default:
 			for i := 0; i < p.threads; i++ {
-				yBound := threadHeight + 2
-				if i == p.threads-1 && !isP {
-					yBound += extra
-				}
-				for y := 0; y < yBound; y++ {
-					proposedY := y + (i * threadHeight) - 1
-					if proposedY < 0 {
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
-					for x := 0; x < p.imageWidth; x++ {
-						in[i] <- world[proposedY][x]
-					}
-				}
+				go sendToWorker(p, world, threadHeight, i, in[i], isP, extra)
 			}
-			for i := 0; i < p.threads; i++ {
-				for y := 0; y < threadHeight; y++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[y+(i*(threadHeight))][x] = <-out[i]
-					}
-				}
-			}
+			world = combineWorkers(p, out, threadHeight)
 			if !isP{
 				for e := 0; e < extra; e++ {
 					for x := 0; x < p.imageWidth; x++ {
