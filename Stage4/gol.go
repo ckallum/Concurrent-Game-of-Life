@@ -128,15 +128,31 @@ func notifyWorkers(p golParams, keyChannels []chan int, key int) {
 	}
 }
 
-func pmod(x, d int) int {
-	x = x % d
-	if x >= 0 {
-		return x
+func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
+	world :=buildWorld(p, p.imageHeight)
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
 	}
-	if d < 0 {
-		return x - d
+	return world
+}
+
+func sendToWorker(p golParams, world [][]byte, threadHeight int, i int, in chan<- byte) {
+	for y := 0; y < (threadHeight)+2; y++ {
+		for x := 0; x < p.imageWidth; x++ {
+			proposedY := y + (i * threadHeight) - 1
+
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			in <- world[proposedY][x]
+		}
+
 	}
-	return x + d
 }
 
 func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending []chan byte, receiving [2]chan byte, keyChannel chan int) {
