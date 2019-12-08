@@ -20,7 +20,7 @@ func countAliveCells(p golParams, world [][]byte) {
 	for y := 0; y < p.imageWidth; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			if world[y][x] == 0xFF {
-				alive ++
+				alive++
 			}
 		}
 	}
@@ -56,7 +56,7 @@ func getWorldFromPGM(p golParams, d distributorChans) [][]byte {
 	return world
 }
 
-func worker(p golParams, world [][]byte, tempWorld [][]byte, threadNum int, threadHeight int,extra int, isEven bool, wg *sync.WaitGroup) {
+func worker(p golParams, world [][]byte, tempWorld [][]byte, threadNum int, threadHeight int, extra int, isEven bool, wg *sync.WaitGroup) {
 	//GOL Logic
 	//visualiseMatrix(world, p.imageWidth, p.imageHeight)
 	yBound := (threadNum + 1) * threadHeight
@@ -66,29 +66,29 @@ func worker(p golParams, world [][]byte, tempWorld [][]byte, threadNum int, thre
 	for y := threadNum * threadHeight; y < yBound; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			xRight, xLeft := x+1, x-1
-			yUp, yDown:= y-1, y+1
-            						if xRight >= p.imageWidth {
-            							xRight %= p.imageWidth
-            						}
-            						if xLeft < 0 {
-            							xLeft += p.imageWidth
-            						}
-            						if yDown >= p.imageHeight {
-                                                							yDown %= p.imageHeight
-                                                						}
-                                                						if yUp< 0 {
-                                                							yUp+= p.imageHeight
-                                                						}
-            						count := 0
-            						count = int(world[yUp][xLeft]) +
-            								int(world[yUp][x]) +
-            								int(world[yUp][xRight]) +
-            								int(world[y][xLeft]) +
-            								int(world[y][xRight]) +
-            								int(world[yDown][xLeft]) +
-            								int(world[yDown][x]) +
-            								int(world[yDown][xRight])
-            						count /= 255
+			yUp, yDown := y-1, y+1
+			if xRight >= p.imageWidth {
+				xRight %= p.imageWidth
+			}
+			if xLeft < 0 {
+				xLeft += p.imageWidth
+			}
+			if yDown >= p.imageHeight {
+				yDown %= p.imageHeight
+			}
+			if yUp < 0 {
+				yUp += p.imageHeight
+			}
+			count := 0
+			count = int(world[yUp][xLeft]) +
+				int(world[yUp][x]) +
+				int(world[yUp][xRight]) +
+				int(world[y][xLeft]) +
+				int(world[y][xRight]) +
+				int(world[yDown][xLeft]) +
+				int(world[yDown][x]) +
+				int(world[yDown][xRight])
+			count /= 255
 			if count == 3 || (world[y][x] == 0xFF && count == 2) {
 				tempWorld[y][x] = 0xFF
 			} else {
@@ -107,7 +107,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, threadHeigh
 	world := getWorldFromPGM(p, d)
 	tempWorld := buildWorld(p, p.imageHeight)
 	isEven := !powerOfTwo(p)
-	extra := p.imageHeight%p.threads
+	extra := p.imageHeight % p.threads
 
 	for turn := 0; turn < p.turns; turn++ {
 
@@ -117,7 +117,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, threadHeigh
 			if i == p.threads-1 && isEven {
 				go worker(p, world, tempWorld, i, threadHeight, extra, true, waitGroup)
 			} else {
-				go worker(p, world, tempWorld, i, threadHeight,extra, false, waitGroup)
+				go worker(p, world, tempWorld, i, threadHeight, extra, false, waitGroup)
 			}
 		}
 		waitGroup.Wait()

@@ -184,7 +184,7 @@ func Test(t *testing.T) {
 	}
 }
 
-const benchLength = 10000
+const benchLength = 1000
 
 func Benchmark(b *testing.B) {
 	benchmarks := []struct {

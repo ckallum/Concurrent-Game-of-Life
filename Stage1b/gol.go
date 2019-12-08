@@ -32,25 +32,25 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 
 		for y := 1; y < haloHeight-1; y++ {
 			for x := 0; x < p.imageWidth; x++ {
-				xRight:= x+1
-                                						                        						xLeft := x-1
+				xRight := x + 1
+				xLeft := x - 1
 
-                                                        						if xRight >= p.imageWidth {
-                                                        							xRight %= p.imageWidth
-                                                        						}
-                                                        						if xLeft < 0 {
-                                                        							xLeft += p.imageWidth
-                                                        						}
-                                                        						count := 0
-                                                        						count = int(workerWorld[y-1][xLeft]) +
-                                                        								int(workerWorld[y-1][x]) +
-                                                        								int(workerWorld[y-1][xRight]) +
-                                                        								int(workerWorld[y][xLeft]) +
-                                                        								int(workerWorld[y][xRight]) +
-                                                        								int(workerWorld[y+1][xLeft]) +
-                                                        								int(workerWorld[y+1][x]) +
-                                                        								int(workerWorld[y+1][xRight])
-                                                        						count /= 255
+				if xRight >= p.imageWidth {
+					xRight %= p.imageWidth
+				}
+				if xLeft < 0 {
+					xLeft += p.imageWidth
+				}
+				count := 0
+				count = int(workerWorld[y-1][xLeft]) +
+					int(workerWorld[y-1][x]) +
+					int(workerWorld[y-1][xRight]) +
+					int(workerWorld[y][xLeft]) +
+					int(workerWorld[y][xRight]) +
+					int(workerWorld[y+1][xLeft]) +
+					int(workerWorld[y+1][x]) +
+					int(workerWorld[y+1][xRight])
+				count /= 255
 				if count == 3 || (workerWorld[y][x] == 0xFF && count == 2) {
 					out <- 0xFF
 				} else {

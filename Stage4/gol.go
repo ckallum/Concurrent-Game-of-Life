@@ -15,24 +15,23 @@ func buildWorld(p golParams, height int) [][]byte {
 	return workerWorld
 }
 
-func countAlive(p golParams, world [][]byte, workerHeight int) int{
-	alive:= 0
+func countAlive(p golParams, world [][]byte, workerHeight int) int {
+	alive := 0
 	for y := 1; y < workerHeight-1; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			if world[y][x] == 0xFF {
-				alive ++
+				alive++
 			}
 		}
 	}
 	return alive
 }
 
-
 func countAliveCells(p golParams, keyChannels []chan int, out []chan byte, threadHeight int, extra int) {
 	notifyWorkers(p, keyChannels, 5)
 	alive := 0
 	for i := 0; i < p.threads; i++ {
-		alive+= <-keyChannels[i]
+		alive += <-keyChannels[i]
 	}
 	fmt.Println("Number of Alive Cells:", alive)
 }
@@ -76,11 +75,11 @@ func getWorldFromPGM(p golParams, d distributorChans) [][]byte {
 	return world
 }
 
-
 func giveWorldToWorkers(p golParams, world [][]byte, in []chan byte, threadHeight int, extra int) {
+	pOfTwo := powerOfTwo(p)
 	for i := 0; i < p.threads; i++ {
 		yBound := threadHeight + 2
-		if i == p.threads-1 && !powerOfTwo(p) {
+		if i == p.threads-1 && !pOfTwo {
 			yBound += extra
 		}
 		for y := 0; y < yBound; y++ {
@@ -130,10 +129,14 @@ func notifyWorkers(p golParams, keyChannels []chan int, key int) {
 }
 
 func pmod(x, d int) int {
-  x = x % d
-  if x >= 0 { return x }
-  if d < 0 { return x - d }
-  return x + d
+	x = x % d
+	if x >= 0 {
+		return x
+	}
+	if d < 0 {
+		return x - d
+	}
+	return x + d
 }
 
 func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sending []chan byte, receiving [2]chan byte, keyChannel chan int) {
@@ -144,8 +147,8 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 		}
 	}
 	temp := buildWorld(p, haloHeight)
-	running:= true
-	for running == true{
+	running := true
+	for running == true {
 		select {
 		case val := <-keyChannel:
 			//fmt.Println(val)
@@ -161,25 +164,25 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 				//GOL Logic
 				for y := 1; y < haloHeight-1; y++ {
 					for x := 0; x < p.imageWidth; x++ {
-						xRight:= x+1
-						                        						xLeft := x-1
+						xRight := x + 1
+						xLeft := x - 1
 
-                        						if xRight >= p.imageWidth {
-                        							xRight %= p.imageWidth
-                        						}
-                        						if xLeft < 0 {
-                        							xLeft += p.imageWidth
-                        						}
-                        						count := 0
-                        						count = int(workerWorld[y-1][xLeft]) +
-                        								int(workerWorld[y-1][x]) +
-                        								int(workerWorld[y-1][xRight]) +
-                        								int(workerWorld[y][xLeft]) +
-                        								int(workerWorld[y][xRight]) +
-                        								int(workerWorld[y+1][xLeft]) +
-                        								int(workerWorld[y+1][x]) +
-                        								int(workerWorld[y+1][xRight])
-                        						count /= 255
+						if xRight >= p.imageWidth {
+							xRight %= p.imageWidth
+						}
+						if xLeft < 0 {
+							xLeft += p.imageWidth
+						}
+						count := 0
+						count = int(workerWorld[y-1][xLeft]) +
+							int(workerWorld[y-1][x]) +
+							int(workerWorld[y-1][xRight]) +
+							int(workerWorld[y][xLeft]) +
+							int(workerWorld[y][xRight]) +
+							int(workerWorld[y+1][xLeft]) +
+							int(workerWorld[y+1][x]) +
+							int(workerWorld[y+1][xRight])
+						count /= 255
 						if count == 3 || (workerWorld[y][x] == 0xFF && count == 2) {
 							temp[y][x] = 0xFF
 						} else {
@@ -201,16 +204,16 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams, sendin
 				go sendWorldFromWorkers(p, workerWorld, out, haloHeight)
 			}
 			if val == 4 {
-				paused:=true
-				for paused == true{
+				paused := true
+				for paused == true {
 					val := <-keyChannel
 					if val == 4 {
 						paused = false
 					}
 				}
 			}
-			if val == 5{
-				keyChannel<-countAlive(p, workerWorld, haloHeight)
+			if val == 5 {
+				keyChannel <- countAlive(p, workerWorld, haloHeight)
 			}
 
 		}
@@ -225,7 +228,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	extra := p.imageHeight % p.threads
 	giveWorldToWorkers(p, world, in, threadHeight, extra)
 	ticker := time.NewTicker(2 * time.Second)
-	running:= true
+	running := true
 
 	for turn := 0; turn < p.turns && running == true; turn++ {
 		select {
@@ -234,7 +237,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			if char == "s" {
 				fmt.Println("S Pressed")
 				go notifyWorkers(p, keyChannels, 2)
-				w:= getWorldFromWorkers(p, out, threadHeight, extra)
+				w := getWorldFromWorkers(p, out, threadHeight, extra)
 				go sendWorldToPGM(p, w, d, turn)
 			}
 			if char == "q" {
@@ -244,12 +247,12 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 			if char == "p" {
 				fmt.Println("P pressed, pausing at turn: " + strconv.Itoa(turn))
 				go notifyWorkers(p, keyChannels, 4)
-				paused:=true
-				for paused == true{
+				paused := true
+				for paused == true {
 					char := string(<-d.key)
 					if char == "p" {
 						fmt.Println("Continuing")
-						paused =false
+						paused = false
 						notifyWorkers(p, keyChannels, 4)
 					}
 				}
@@ -263,7 +266,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 
 	go notifyWorkers(p, keyChannels, 3)
 	world = getWorldFromWorkers(p, out, threadHeight, extra)
-	go sendWorldToPGM(p,world, d, p.turns)
+	go sendWorldToPGM(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
@@ -283,4 +286,3 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	// Return the coordinates of cells that are still alive.
 	alive <- finalAlive
 }
-
