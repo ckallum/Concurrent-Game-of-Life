@@ -6,6 +6,37 @@ import (
 	"strings"
 )
 
+
+func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
+	world := make([][]byte, p.imageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.imageWidth)
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	return world
+}
+
+func sendToWorker(p golParams, world [][]byte, threadHeight int, i int, in chan<- byte) {
+	for y := 0; y < (threadHeight)+2; y++ {
+		for x := 0; x < p.imageWidth; x++ {
+			proposedY := y + (i * threadHeight) - 1
+
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			in <- world[proposedY][x]
+		}
+
+	}
+}
+
 func sendWorld(p golParams, world [][]byte, d distributorChans) {
 	d.io.command <- ioOutput
 	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight) + "-" + strconv.Itoa(p.turns)}, "x")
@@ -89,27 +120,9 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 
 	for turns := 0; turns < p.turns; turns++ {
 		for i := 0; i < p.threads; i++ {
-			for y := 0; y < (threadHeight)+2; y++ {
-				for x := 0; x < p.imageWidth; x++ {
-					proposedY := y + (i * threadHeight) - 1
-
-					if proposedY < 0 {
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
-					in[i] <- world[proposedY][x]
-				}
-
-			}
+			go sendToWorker(p, world, threadHeight, i, in[i])
 		}
-		for i := 0; i < p.threads; i++ {
-			for y := 0; y < threadHeight; y++ {
-				for x := 0; x < p.imageWidth; x++ {
-					world[y+(i*(threadHeight))][x] = <-out[i]
-
-				}
-			}
-		}
+		world = combineWorkers(p, out, threadHeight)
 	}
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
@@ -132,3 +145,5 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	// Return the coordinates of cells that are still alive.
 	alive <- finalAlive
 }
+
+
