@@ -1,102 +1,207 @@
-Bench marks on Lab Computer IT076816
-Lower the percentage the better.
+Bench marks on Lab Computer IT075670
+
 ------------------------------------------------------------------------------------
 
 Stage 1a:
 
-Make Bench Results:
+Benchmarks:
 
-Benchmark/16x16x2-12         	      49	  23862276 ns/op
-Benchmark/16x16x4-12         	      43	  23922055 ns/op
-Benchmark/16x16x8-12         	      50	  23538919 ns/op
-Benchmark/64x64x2-12         	       3	 334750455 ns/op
-Benchmark/64x64x4-12         	       3	 334222257 ns/op
-Benchmark/64x64x8-12         	       3	 336032069 ns/op
-Benchmark/128x128x2-12       	       1	1274622506 ns/op
-Benchmark/128x128x4-12       	       1	1261989129 ns/op
-Benchmark/128x128x8-12       	       1	1258956861 ns/op
-Benchmark/256x256x2-12       	       1	5099893987 ns/op
-Benchmark/256x256x4-12       	       1	5094217237 ns/op
-Benchmark/256x256x8-12       	       1	5068444607 ns/op
-Benchmark/512x512x2-12       	       1	20200646690 ns/op
-Benchmark/512x512x4-12       	       1	20520405033 ns/op
-Benchmark/512x512x8-12       	       1	19493402957 ns/op
-ok  	uk.ac.bris.cs/gameoflife	88.778s
+Benchmark/16x16x2-12         	     394	   3103077 ns/op
+Benchmark/16x16x4-12         	     400	   2951010 ns/op
+Benchmark/16x16x8-12         	     405	   3000951 ns/op
+Benchmark/64x64x2-12         	      28	  42257135 ns/op
+Benchmark/64x64x4-12         	      25	  44597180 ns/op
+Benchmark/64x64x8-12         	      31	  42993707 ns/op
+Benchmark/128x128x2-12       	       7	 158394206 ns/op
+Benchmark/128x128x4-12       	       8	 159669081 ns/op
+Benchmark/128x128x8-12       	       8	 139564311 ns/op
+Benchmark/256x256x2-12       	       2	 578594407 ns/op
+Benchmark/256x256x4-12       	       2	 576186031 ns/op
+Benchmark/256x256x8-12       	       2	 594927232 ns/op
+Benchmark/512x512x2-12       	       1	2263557570 ns/op
+Benchmark/512x512x4-12       	       1	2269354985 ns/op
+Benchmark/512x512x8-12       	       1	2436186829 ns/op
+ok  	uk.ac.bris.cs/gameoflife	26.145s
 
-Make Compare Results:
+
+Comparison to Baseline:
 TIME RESULTS
 Benchmark       Baseline result   Your result       % Difference
                 (ns/1000 turns)   (ns/1000 turns)   The bigger the better
-128x128x2-12     748078910         1274263009        58 %
-128x128x4-12     531828566         1240350769        42 %
-128x128x8-12     362153836         1222014920        29 %
+128x128x2-12     934401500         156421039         597 %
+128x128x4-12     633481008         146607627         432 %
+128x128x8-12     484371280         144410000         335 %
 
 CPU USAGE RESULTS
 Benchmark       Baseline CPU usage   Your CPU usage   % Difference
                                                       The smaller the better
-128x128x2-12     184 %                100 %            184 %
-128x128x4-12     299 %                100 %            299 %
-128x128x8-12     425 %                100 %            425 %
+128x128x2-12     178 %                100 %            178 %
+128x128x4-12     280 %                100 %            280 %
+128x128x8-12     366 %                100 %            366 %
+
 
 ------------------------------------------------------------------------------------
 
 Stage 1b:
 
-Make Bench:
--- Times out/takes ages
+Benchmarks:
 
-Make Compare Results:
+Benchmark/16x16x2-12         	      26	  44434034 ns/op
+Benchmark/16x16x4-12         	      22	  49421926 ns/op
+Benchmark/16x16x8-12         	      20	  55648079 ns/op
+Benchmark/64x64x2-12         	       3	 462189187 ns/op
+Benchmark/64x64x4-12         	       3	 422699719 ns/op
+Benchmark/64x64x8-12         	       3	 407309322 ns/op
+Benchmark/128x128x2-12       	       1	1689446062 ns/op
+Benchmark/128x128x4-12       	       1	1459257910 ns/op
+Benchmark/128x128x8-12       	       1	1429405144 ns/op
+Benchmark/256x256x2-12       	       1	6861638569 ns/op
+Benchmark/256x256x4-12       	       1	5869626138 ns/op
+Benchmark/256x256x8-12       	       1	5404348522 ns/op
+Benchmark/512x512x2-12       	       1	26843579162 ns/op
+Benchmark/512x512x4-12       	       1	22852653788 ns/op
+Benchmark/512x512x8-12       	       1	20917759080 ns/op
+ok  	uk.ac.bris.cs/gameoflife	104.697s
 
-------------------------------------------------------------------------------------
 
-Stage 2:
+Comparison to Baseline
 
-Make Compare Results:
+TIME RESULTS
+Benchmark       Baseline result   Your result       % Difference
+                (ns/1000 turns)   (ns/1000 turns)   The bigger the better
+128x128x2-12     951723879         1691069463        56 %
+128x128x4-12     654905004         1526687514        42 %
+128x128x8-12     524078916         1458421567        35 %
+
+CPU USAGE RESULTS
+Benchmark       Baseline CPU usage   Your CPU usage   % Difference
+                                                      The smaller the better
+128x128x2-12     177 %                145 %            122 %
+128x128x4-12     271 %                172 %            157 %
+128x128x8-12     344 %                195 %            176 %
 
 ------------------------------------------------------------------------------------
 
 Stage 3:
 
-Make Compare Results:
+Benchmarks:
+
+Benchmark/16x16x2-12         	      24	  43378301 ns/op
+Benchmark/16x16x4-12         	      24	  48070151 ns/op
+Benchmark/16x16x8-12         	      20	  58428148 ns/op
+Benchmark/64x64x2-12         	       3	 464561068 ns/op
+Benchmark/64x64x4-12         	       3	 452475990 ns/op
+Benchmark/64x64x8-12         	       3	 438296511 ns/op
+Benchmark/128x128x2-12       	       1	1764287681 ns/op
+Benchmark/128x128x4-12       	       1	1566671389 ns/op
+Benchmark/128x128x8-12       	       1	1457015957 ns/op
+Benchmark/256x256x2-12       	       1	7248838557 ns/op
+Benchmark/256x256x4-12       	       1	6041771886 ns/op
+Benchmark/256x256x8-12       	       1	5669286460 ns/op
+Benchmark/512x512x2-12       	       1	26579141771 ns/op
+Benchmark/512x512x4-12       	       1	23556567020 ns/op
+Benchmark/512x512x8-12       	       1	21684402806 ns/op
+ok  	uk.ac.bris.cs/gameoflife	107.210s
+
+
+Comparison to Baseline:
+
+TIME RESULTS
+Benchmark       Baseline result   Your result       % Difference
+                (ns/1000 turns)   (ns/1000 turns)   The bigger the better
+128x128x2-12     971376850         1670473302        58 %
+128x128x4-12     733290708         1557167492        47 %
+128x128x8-12     599741889         1504921869        39 %
+
+CPU USAGE RESULTS
+Benchmark       Baseline CPU usage   Your CPU usage   % Difference
+                                                      The smaller the better
+128x128x2-12     174 %                141 %            123 %
+128x128x4-12     249 %                163 %            152 %
+128x128x8-12     311 %                181 %            171 %
+
 
 
 ------------------------------------------------------------------------------------
 
 Stage 4:
 
-Make Compare Results:
+Benchmarks:
+
+Benchmark/16x16x2-12         	      19	  64063298 ns/op
+Benchmark/16x16x4-12         	      10	 110791017 ns/op
+Benchmark/16x16x8-12         	       6	 173214103 ns/op
+Benchmark/64x64x2-12         	       2	 535099068 ns/op
+Benchmark/64x64x4-12         	       2	 593018800 ns/op
+Benchmark/64x64x8-12         	       2	 643244165 ns/op
+Benchmark/128x128x2-12       	       1	1512423711 ns/op
+Benchmark/128x128x4-12       	       1	1442841536 ns/op
+Benchmark/128x128x8-12       	       1	1331985667 ns/op
+Benchmark/256x256x2-12       	       1	4734148708 ns/op
+Benchmark/256x256x4-12       	       1	4228007843 ns/op
+Benchmark/256x256x8-12       	       1	3830809942 ns/op
+Benchmark/512x512x2-12       	       1	17186553175 ns/op
+Benchmark/512x512x4-12       	       1	12372188279 ns/op
+Benchmark/512x512x8-12       	       1	10298364115 ns/op
+ok  	uk.ac.bris.cs/gameoflife	67.072s
+
+Baseline Comparison:
+
 TIME RESULTS
 Benchmark       Baseline result   Your result       % Difference
                 (ns/1000 turns)   (ns/1000 turns)   The bigger the better
-128x128x2-12     738296903         1355778289        54 %
-128x128x4-12     536594525         1055680889        50 %
-128x128x8-12     365545447         927528010         39 %
+128x128x2-12     971906107         1457376236        66 %
+128x128x4-12     726323740         1452011742        50 %
+128x128x8-12     584056952         1399250241        41 %
 
 CPU USAGE RESULTS
 Benchmark       Baseline CPU usage   Your CPU usage   % Difference
                                                       The smaller the better
-128x128x2-12     184 %                106 %            173 %
-128x128x4-12     299 %                194 %            154 %
-128x128x8-12     424 %                322 %            131 %
+128x128x2-12     174 %                108 %            161 %
+128x128x4-12     253 %                182 %            139 %
+128x128x8-12     317 %                267 %            118 %
+
 
 
 ------------------------------------------------------------------------------------
 
 Stage 5:
-Make Compare Results:
+
+Benchmarks:
+
+Benchmark/16x16x2-12         	     286	   4216107 ns/op
+Benchmark/16x16x4-12         	     265	   4349437 ns/op
+Benchmark/16x16x8-12         	     236	   5555029 ns/op
+Benchmark/64x64x2-12         	      31	  35387485 ns/op
+Benchmark/64x64x4-12         	      31	  39241535 ns/op
+Benchmark/64x64x8-12         	      42	  37764277 ns/op
+Benchmark/128x128x2-12       	       8	 129545090 ns/op
+Benchmark/128x128x4-12       	      10	 103572172 ns/op
+Benchmark/128x128x8-12       	       9	 120472609 ns/op
+Benchmark/256x256x2-12       	       3	 497712373 ns/op
+Benchmark/256x256x4-12       	       3	 392510472 ns/op
+Benchmark/256x256x8-12       	       3	 427437463 ns/op
+Benchmark/512x512x2-12       	       1	1839970873 ns/op
+Benchmark/512x512x4-12       	       1	1429621603 ns/op
+Benchmark/512x512x8-12       	       1	1295151318 ns/op
+ok  	uk.ac.bris.cs/gameoflife	26.819s
+
+
+Baseline Comparison:
+
 TIME RESULTS
 Benchmark       Baseline result   Your result       % Difference
                 (ns/1000 turns)   (ns/1000 turns)   The bigger the better
-128x128x2-12     737808276         656649044         112 %
-128x128x4-12     531023533         514773644         103 %
-128x128x8-12     361779290         422864078         85 %
+128x128x2-12     962080726         104093784         924 %
+128x128x4-12     740846245         107814423         687 %
+128x128x8-12     592292244         113513630         521 %
 
 CPU USAGE RESULTS
 Benchmark       Baseline CPU usage   Your CPU usage   % Difference
                                                       The smaller the better
-128x128x2-12     185 %                187 %            98 %
-128x128x4-12     298 %                292 %            102 %
-128x128x8-12     423 %                462 %            91 %
+128x128x2-12     175 %                191 %            91 %
+128x128x4-12     252 %                208 %            121 %
+128x128x8-12     313 %                184 %            170 %
 
 
 
