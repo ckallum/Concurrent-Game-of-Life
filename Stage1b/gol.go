@@ -124,6 +124,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 		world = combineWorkers(p, out, threadHeight)
 	}
+	go sendWorld(p, world, d)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
@@ -136,7 +137,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 		}
 	}
 
-	sendWorld(p, world, d)
 
 	// Make sure that the Io has finished any output before exiting.
 	d.io.command <- ioCheckIdle

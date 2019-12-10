@@ -24,6 +24,11 @@ test:
 # bench will run all tests before benchmarking - they must all pass
 bench:
 	go test -bench .
+# 	go test -bench /16x16x1000
+#     go test -bench /64x64x1000
+#     go test -bench /128x12x1000
+#     go test -bench /512x512x1000
+
 
 compare:
 	./comparison/compare.sh

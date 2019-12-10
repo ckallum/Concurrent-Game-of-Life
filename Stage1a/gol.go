@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -18,6 +17,17 @@ func isAlive(p golParams, x, y int, temp [][]byte) bool {
 		return true
 	}
 }
+func sendWorld(p golParams, world [][]byte, d distributorChans, turn int) {
+	d.io.command <- ioOutput
+	d.io.filename <- strings.Join([]string{strconv.Itoa(p.imageWidth), strconv.Itoa(p.imageHeight), "Turn:" + strconv.Itoa(turn)}, "x")
+
+	for y := range world {
+		for x := range world[y] {
+			d.io.outputVal <- world[y][x]
+		}
+	}
+}
+
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell) {
@@ -37,7 +47,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 		for x := 0; x < p.imageWidth; x++ {
 			val := <-d.io.inputVal
 			if val != 0 {
-				fmt.Println("Alive cell at", x, y)
+				//fmt.Println("Alive cell at", x, y)
 				world[y][x] = val
 			}
 		}
@@ -93,6 +103,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell) {
 			copy(temp[i], world[i])
 		}
 	}
+	go sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell
