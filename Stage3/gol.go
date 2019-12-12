@@ -23,21 +23,49 @@ func printAliveCells(p golParams, world [][]byte) {
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			if world[y][x] == 0xFF {
-				alive ++
+				alive++
 			}
 		}
 	}
 	fmt.Println("Number of Alive Cells:", alive)
 }
 
-func isAlive(imageWidth, x, y int, world [][]byte) bool {
-	x += imageWidth
-	x %= imageWidth
-	if world[y][x] == 0 {
-		return false
-	} else {
-		return true
+func combineWorkers(p golParams, out []chan byte, threadHeight int, isP bool, extra int) [][]byte {
+	world := make([][]byte, p.imageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.imageWidth)
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	if !isP{
+		for e := 0; e < extra; e++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
+			}
+		}
+	}
+	return world
+}
 
+func sendToWorker(p golParams, world [][]byte, threadHeight int, i int, in chan<- byte, isP bool, extra int) {
+	yBound := threadHeight + 2
+	if i == p.threads-1 && !isP {
+		yBound += extra
+	}
+	for y := 0; y < yBound; y++ {
+		proposedY := y + (i * threadHeight) - 1
+		if proposedY < 0 {
+			proposedY += p.imageHeight
+		}
+		proposedY %= p.imageHeight
+		for x := 0; x < p.imageWidth; x++ {
+			in <- world[proposedY][x]
+		}
 	}
 }
 
@@ -55,15 +83,26 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 
 		for y := 1; y < haloHeight-1; y++ {
 			for x := 0; x < p.imageWidth; x++ {
-				count := 0
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
-							count++
-						}
-					}
+				xRight := x + 1
+				xLeft := x - 1
+
+				if xRight >= p.imageWidth {
+					xRight %= p.imageWidth
 				}
-				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
+				if xLeft < 0 {
+					xLeft += p.imageWidth
+				}
+				count := 0
+				count = int(workerWorld[y-1][xLeft]) +
+					int(workerWorld[y-1][x]) +
+					int(workerWorld[y-1][xRight]) +
+					int(workerWorld[y][xLeft]) +
+					int(workerWorld[y][xRight]) +
+					int(workerWorld[y+1][xLeft]) +
+					int(workerWorld[y+1][x]) +
+					int(workerWorld[y+1][xRight])
+				count /= 255
+				if count == 3 || (workerWorld[y][x] == 0xFF && count == 2) {
 					out <- 0xFF
 				} else {
 					out <- 0
@@ -72,22 +111,6 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 		}
 	}
 }
-/**
-Stage 4 Idea:
-- https://tcpp.cs.gsu.edu/curriculum/?q=system/files/ch10.pdf
-- Each thread manages two halo's/row's
-	- each thread must receive from two other threads/halos each turn.
-		- Turn Start:
-			- each thread sends out its halo
-			- each thread receives from two other threads
-		- Turn End:
-			- each thread processes it's own world and changes it's halo
-- Have a 'DoneManager' that checks all threads are done working on the current turn->once buffer fills-> send signal to
-threads to process next turn.
-- Have a 'Turn Manager' that has a buffer of size turns-> as soon as this is full all turns are over and get distributor to
-receive world from all threads.
-- Making sure inputs work i.e. have multiple input channels that pause all workers
-**/
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p golParams, d distributorChans, alive chan []cell, in []chan byte, out []chan byte) {
@@ -97,6 +120,7 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	for i := range world {
 		world[i] = make([]byte, p.imageWidth)
 	}
+	isP:= powerOfTwo(p)
 
 	// Request the io goroutine to read in the image with the given filename.
 	d.io.command <- ioInput
@@ -113,7 +137,6 @@ func distributor(p golParams, d distributorChans, alive chan []cell, in []chan b
 	}
 	threadHeight := p.imageHeight / p.threads
 	extra := p.imageHeight % p.threads
-	fmt.Println(strconv.Itoa(extra))
 	ticker := time.NewTicker(2 * time.Second)
 
 loop1:
@@ -152,38 +175,13 @@ loop1:
 
 		default:
 			for i := 0; i < p.threads; i++ {
-				yBound := threadHeight + 2
-				if i == p.threads-1 && !powerOfTwo(p) {
-					yBound += extra
-				}
-				for y := 0; y < yBound; y++ {
-					proposedY := y + (i * threadHeight) - 1
-					if proposedY < 0 {
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
-					for x := 0; x < p.imageWidth; x++ {
-						in[i] <- world[proposedY][x]
-					}
-				}
+				go sendToWorker(p, world, threadHeight, i, in[i], isP, extra)
 			}
-			for i := 0; i < p.threads; i++ {
-				for y := 0; y < threadHeight; y++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[y+(i*(threadHeight))][x] = <-out[i]
-					}
-				}
-			}
-			if !powerOfTwo(p) {
-				for e := 0; e < extra; e++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[e+(p.threads*(threadHeight))][x] = <-out[p.threads-1]
-					}
-				}
-			}
+			world = combineWorkers(p, out, threadHeight, isP, extra)
+
 		}
 	}
-	sendWorld(p, world, d, p.turns)
+	go sendWorld(p, world, d, p.turns)
 
 	// Create an empty slice to store coordinates of cells that are still alive after p.turns are done.
 	var finalAlive []cell

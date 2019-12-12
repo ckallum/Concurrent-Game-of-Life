@@ -1,19 +1,10 @@
-package Stage2
+package main
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-)
-
-package main
-
-import (
-"fmt"
-"strconv"
-"strings"
-"time"
 )
 
 func sendWorld(p golParams, world [][]byte, d distributorChans) {
@@ -32,20 +23,39 @@ func printCells(p golParams, world [][]byte) {
 	for y := 0; y < p.imageHeight; y++ {
 		for x := 0; x < p.imageWidth; x++ {
 			if world[y][x] == 1 {
-				alive ++
+				alive++
 			}
 		}
 	}
 	fmt.Println("Number of Alive Cells:", alive)
 }
 
-func isAlive(imageWidth, x, y int, world [][]byte) bool {
-	x += imageWidth
-	x %= imageWidth
-	if world[y][x] == 0 {
-		return false
-	} else {
-		return true
+func combineWorkers(p golParams, out []chan byte, threadHeight int) [][]byte {
+	world := make([][]byte, p.imageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.imageWidth)
+	}
+	for i := 0; i < p.threads; i++ {
+		for y := 0; y < threadHeight; y++ {
+			for x := 0; x < p.imageWidth; x++ {
+				world[y+(i*(threadHeight))][x] = <-out[i]
+			}
+		}
+	}
+	return world
+}
+
+func sendToWorker(p golParams, world [][]byte, threadHeight int, i int, in chan<- byte) {
+	for y := 0; y < (threadHeight)+2; y++ {
+		for x := 0; x < p.imageWidth; x++ {
+			proposedY := y + (i * threadHeight) - 1
+
+			if proposedY < 0 {
+				proposedY += p.imageHeight
+			}
+			proposedY %= p.imageHeight
+			in <- world[proposedY][x]
+		}
 
 	}
 }
@@ -64,16 +74,27 @@ func worker(haloHeight int, in <-chan byte, out chan<- byte, p golParams) {
 
 		for y := 1; y < haloHeight-1; y++ {
 			for x := 0; x < p.imageWidth; x++ {
-				count := 0
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						if (j != 0 || i != 0) && isAlive(p.imageWidth, x+i, y+j, workerWorld) {
-							count++
-						}
-					}
+				xRight := x + 1
+				xLeft := x - 1
+
+				if xRight >= p.imageWidth {
+					xRight %= p.imageWidth
 				}
-				if count == 3 || (isAlive(p.imageWidth, x, y, workerWorld) && count == 2) {
-					out <- 1
+				if xLeft < 0 {
+					xLeft += p.imageWidth
+				}
+				count := 0
+				count = int(workerWorld[y-1][xLeft]) +
+					int(workerWorld[y-1][x]) +
+					int(workerWorld[y-1][xRight]) +
+					int(workerWorld[y][xLeft]) +
+					int(workerWorld[y][xRight]) +
+					int(workerWorld[y+1][xLeft]) +
+					int(workerWorld[y+1][x]) +
+					int(workerWorld[y+1][xRight])
+				count /= 255
+				if count == 3 || (workerWorld[y][x] == 0xFF && count == 2) {
+					out <- 0xFF
 				} else {
 					out <- 0
 				}
@@ -151,25 +172,9 @@ loop1:
 
 		default:
 			for i := 0; i < p.threads; i++ {
-				for y := 0; y < (threadHeight)+2; y++ {
-					proposedY := y + (i * threadHeight) - 1
-					if proposedY < 0 {
-						proposedY += p.imageHeight
-					}
-					proposedY %= p.imageHeight
-					for x := 0; x < p.imageWidth; x++ {
-						in[i] <- world[proposedY][x]
-					}
-				}
+				go sendToWorker(p, world, threadHeight, i, in[i])
 			}
-			for i := 0; i < p.threads; i++ {
-				for y := 0; y < threadHeight; y++ {
-					for x := 0; x < p.imageWidth; x++ {
-						world[y+(i*(threadHeight))][x] = <-out[i]
-
-					}
-				}
-			}
+			world = combineWorkers(p, out, threadHeight)
 		}
 
 	}
