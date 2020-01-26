@@ -5,5 +5,5 @@ Two implementations of Conway's Game of Life in GoLang using a concurrent approa
 - Memory Sharing
 - Message Passing
 
-The benchmarks/performance differences between the two approaches can be seen in
-`benchmarks.txt`
+The benchmarks/performance differences of both concurrent solutions against a baseline sequential solution can be seen in
+`benchmarks.txt`.
