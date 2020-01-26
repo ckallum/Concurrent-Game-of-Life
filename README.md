@@ -18,9 +18,11 @@ You will also need to add the following lines to your .profile file by entering 
  
  
  `
-  export PATH=$PATH:/us/local/go/bin
-  export GOPATH=$HOME/go
-  export PATH=$PATH:$GOPATH/bin`
+  export PATH=$PATH:/us/local/go/bin`
+  
+  `export GOPATH=$HOME/go`
+  
+  `export PATH=$PATH:$GOPATH/bin`
   
 
 
