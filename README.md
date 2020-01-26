@@ -7,6 +7,7 @@ Two implementations of Conway's Game of Life in GoLang using a concurrent approa
 
 The benchmarks/performance differences of both concurrent solutions against a baseline sequential solution can be seen in
 `benchmarks.txt`.
+
 -----------
 
 How to Run
@@ -39,3 +40,6 @@ Save the file and enter `source ~/.profile` in the command line.
 
 
 `make bench`: runs all the tests before benchmarking. Then outputs the comparisson of CPU usage and runtime against the sequential solution.
+
+
+You can view the input and output images in the `images` folder.
