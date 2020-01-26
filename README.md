@@ -34,5 +34,8 @@ Save the file and enter `source ~/.profile` in the command line.
 - `ctrl-s`
 - `ctrl-q`
 
+
 `make test`: runs the the program against the test file to check for correct logic.
+
+
 `make bench`: runs all the tests before benchmarking. Then outputs the comparisson of CPU usage and runtime against the sequential solution.
